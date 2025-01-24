@@ -1,0 +1,18 @@
+[versions]
+
+axion-release-plugin = "1.18.16"
+
+junit = "5.11.4"
+junit-platform = "1.11.4"
+
+[libraries]
+
+junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junit" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junit-platform" }
+
+[bundles]
+
+[plugins]
+
+axion-release-plugin = { id = "pl.allegro.tech.build.axion-release", version.ref = "axion-release-plugin" }
