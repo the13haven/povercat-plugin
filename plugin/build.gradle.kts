@@ -1,4 +1,8 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import pl.allegro.tech.build.axion.release.domain.hooks.HookContext
+
+group = "com.l13.plugin"
+project.version = scmVersion.version
 
 plugins {
     `kotlin-dsl`
@@ -12,20 +16,46 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
-group = "org.gradle.plugin.povercat"
-project.version = scmVersion.version
-
-gradlePlugin {
-    val greeting by plugins.creating {
-        id = "org.gradle.povercat"
-        implementationClass = "org.gradle.plugin.povercat.PortableVersionCatalogGeneratorPlugin"
-    }
+kotlin {
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_22)
 }
 
 tasks.test {
     useJUnitPlatform()
     testLogging {
         events("passed", "skipped", "failed")
+    }
+}
+
+gradlePlugin {
+    plugins {
+        register("PoVerCatPlugin") {
+            displayName = "Portable Version Catalog Plugin (PoVerCat)"
+            id = "com.l13.plugin.povercat"
+            implementationClass = "org.gradle.plugin.povercat.PortableVersionCatalogGeneratorPlugin"
+            version = project.version
+        }
+    }
+}
+
+publishing {
+    afterEvaluate {
+        publications.named<MavenPublication>("pluginMaven") {
+            artifactId = "povercat"
+        }
+    }
+
+    repositories {
+        mavenLocal()
+
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/SergiusSidorov/haven-gradle-convention")
+            credentials {
+                username = project.findProperty("publish.username") as String? ?: System.getenv("USERNAME")
+                password = project.findProperty("publish.token") as String? ?: System.getenv("TOKEN")
+            }
+        }
     }
 }
 
@@ -44,7 +74,7 @@ scmVersion {
     }
 
     nextVersion {
-        suffix.set("RC")
+        suffix.set("SNAPSHOT")
         separator.set("-")
     }
 
@@ -55,6 +85,15 @@ scmVersion {
     }
 
     hooks {
+//        preRelease {
+//            fileUpdate {
+//                encoding = "utf-8"
+//                file("README.md")
+//                pattern = { previousVersion: String, _: HookContext -> "v$previousVersion" }
+//                replacement = { currentVersion: String, _: HookContext -> "v$currentVersion" }
+//            }
+//        }
+
         // workaround, will be replaced with preRelease hook and fileUpdate
         pre(
             "fileUpdate",
