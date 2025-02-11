@@ -1,0 +1,15 @@
+[versions]
+
+version-simple = "1.2.3"
+version-as-object = { prefer = "1.0.0", require = "1.0.1", strictly = "1.1.1", reject = [ "0.0.1", "0.0.2" ] }
+version-reject-all = { rejectAll = true }
+
+[libraries]
+
+lib-with-version-ref = { group = "lib.test.version.ref", name = "version-ref", version.ref = "version-simple" }
+lib-with-version-as-object = { group = "lib.test.version.as.object", name = "version-as-object", version = { prefer = "1.0.0", require = "1.0.1", strictly = "1.1.1", reject = [ "0.0.1", "0.0.2" ] } }
+
+[bundles]
+
+[plugins]
+
