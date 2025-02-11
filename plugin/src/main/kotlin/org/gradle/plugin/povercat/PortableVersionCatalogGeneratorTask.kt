@@ -26,7 +26,6 @@ import org.gradle.api.tasks.SkipWhenEmpty
 import org.gradle.api.tasks.TaskAction
 import org.gradle.internal.impldep.org.tomlj.Toml
 import org.gradle.internal.impldep.org.tomlj.TomlParseResult
-import org.gradle.internal.impldep.org.tomlj.TomlTable
 import java.io.File
 import java.time.LocalDate
 import java.util.*
@@ -97,21 +96,24 @@ abstract class PortableVersionCatalogGeneratorTask : DefaultTask() {
 
                     versions.forEach { (key, value) ->
                         val parsedVersion = TomlParserUtils.parseVersion(value)
-                        parsedVersions[key] = parsedVersion
 
-                        appendLine()
-                        appendLine("        @JvmStatic")
-                        appendLine("        val ${TomlParserUtils.toCamelCase(key)}: VersionConstraint = DefaultImmutableVersionConstraint(")
-                        appendLine("            \"${parsedVersion.preferredVersion}\",")
-                        appendLine("            \"${parsedVersion.requiredVersion}\",")
-                        appendLine("            \"${parsedVersion.strictVersion}\",")
-                        if (parsedVersion.rejectedVersions.isNotEmpty()) {
-                            appendLine("            listOf(${parsedVersion.rejectedVersions.joinToString(", ") { "\"${it}\"" }}),")
-                        } else {
-                            appendLine("            emptyList<String>(),")
+                        if (parsedVersion.isNotEmpty()) {
+                            parsedVersions[key] = parsedVersion
+
+                            appendLine()
+                            appendLine("        @JvmStatic")
+                            appendLine("        val ${TomlParserUtils.toCamelCase(key)}: VersionConstraint = DefaultImmutableVersionConstraint(")
+                            appendLine("            \"${parsedVersion.preferredVersion}\",")
+                            appendLine("            \"${parsedVersion.requiredVersion}\",")
+                            appendLine("            \"${parsedVersion.strictVersion}\",")
+                            if (parsedVersion.rejectedVersions.isNotEmpty()) {
+                                appendLine("            listOf(${parsedVersion.rejectedVersions.joinToString(", ") { "\"${it}\"" }}),")
+                            } else {
+                                appendLine("            emptyList<String>(),")
+                            }
+                            appendLine("            null")
+                            appendLine("        )")
                         }
-                        appendLine("            null")
-                        appendLine("        )")
                     }
 
                     appendLine("    }")
@@ -122,36 +124,28 @@ abstract class PortableVersionCatalogGeneratorTask : DefaultTask() {
                     appendLine("    object Libraries {")
 
                     libraries.forEach { (key, value) ->
-                        val libData = value as TomlTable
-                        val group = libData["group"]
-                        val name = libData["name"]
+                        val parsedLibrary = TomlParserUtils.parseLibrary(value, parsedVersions)
 
-                        // check 2 variants: 1/ version.ref 2/ version with object as value
-                        val versionRef = libData["version.ref"]
-                        val version = if (versionRef != null) {
-                            parsedVersions[versionRef] ?: TomlParserUtils.emptyVersion
-                        } else {
-                            TomlParserUtils.parseVersion(libData["version"] ?: "")
+                        if (parsedLibrary.isNotEmpty()) {
+                            appendLine()
+                            appendLine("        @JvmStatic")
+                            appendLine("        val ${TomlParserUtils.toCamelCase(key)}: MinimalExternalModuleDependency = DefaultMinimalDependency(")
+                            appendLine("            DefaultModuleIdentifier.newId(\"${parsedLibrary.group}\", \"${parsedLibrary.name}\"),")
+                            appendLine("            DefaultMutableVersionConstraint(")
+                            appendLine("                DefaultImmutableVersionConstraint(")
+                            appendLine("                    \"${parsedLibrary.version.preferredVersion}\",")
+                            appendLine("                    \"${parsedLibrary.version.requiredVersion}\",")
+                            appendLine("                    \"${parsedLibrary.version.strictVersion}\",")
+                            if (parsedLibrary.version.rejectedVersions.isNotEmpty()) {
+                                appendLine("                    listOf(${parsedLibrary.version.rejectedVersions.joinToString(", ") { "\"${it}\"" }}),")
+                            } else {
+                                appendLine("                    emptyList<String>(),")
+                            }
+                            appendLine("                    null")
+                            appendLine("                )")
+                            appendLine("            )")
+                            appendLine("        )")
                         }
-
-                        appendLine()
-                        appendLine("        @JvmStatic")
-                        appendLine("        val ${TomlParserUtils.toCamelCase(key)}: MinimalExternalModuleDependency = DefaultMinimalDependency(")
-                        appendLine("            DefaultModuleIdentifier.newId(\"${group}\", \"${name}\"),")
-                        appendLine("            DefaultMutableVersionConstraint(")
-                        appendLine("                DefaultImmutableVersionConstraint(")
-                        appendLine("                    \"${version.preferredVersion}\",")
-                        appendLine("                    \"${version.requiredVersion}\",")
-                        appendLine("                    \"${version.strictVersion}\",")
-                        if (version.rejectedVersions.isNotEmpty()) {
-                            appendLine("                    listOf(${version.rejectedVersions.joinToString(", ") { "\"${it}\"" }}),")
-                        } else {
-                            appendLine("                    emptyList<String>(),")
-                        }
-                        appendLine("                    null")
-                        appendLine("                )")
-                        appendLine("            )")
-                        appendLine("        )")
                     }
 
                     appendLine("    }")

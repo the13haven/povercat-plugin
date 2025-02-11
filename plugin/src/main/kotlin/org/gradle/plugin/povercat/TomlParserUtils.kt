@@ -15,7 +15,6 @@
 
 package org.gradle.plugin.povercat
 
-import org.gradle.internal.impldep.org.tomlj.TomlArray
 import org.gradle.internal.impldep.org.tomlj.TomlTable
 import java.util.*
 
@@ -28,12 +27,29 @@ import java.util.*
 class TomlParserUtils {
 
     companion object {
+        private const val EMPTY_STRING = ""
 
-        val emptyVersion = TomlVersion("", "", "", emptyList())
+        private const val VERSION_KEY = "version"
+        private const val REF_KEY = "ref"
+        private const val REJECT_ALL_KEY = "rejectAll"
+        private const val REQUIRE_KEY = "require"
+        private const val STRICTLY_KEY = "strictly"
+        private const val PREFER_KEY = "prefer"
+        private const val REJECT_KEY = "reject"
+        private const val MODULE_KEY = "module"
+        private const val GROUP_KEY = "group"
+        private const val NAME_KEY = "name"
 
+        @JvmStatic
+        val EMPTY_VERSION = TomlVersion()
+
+        @JvmStatic
+        val REJECT_ALL_VERSION = TomlVersion(EMPTY_STRING, EMPTY_STRING, EMPTY_STRING, listOf("+"))
+
+        @JvmStatic
         fun toCamelCase(value: String): String {
             return value.split("-", "_", ".")
-                .joinToString("") { part ->
+                .joinToString(EMPTY_STRING) { part ->
                     part.replaceFirstChar {
                         if (it.isLowerCase())
                             it.titlecase(Locale.getDefault())
@@ -46,18 +62,19 @@ class TomlParserUtils {
                 }
         }
 
+        @JvmStatic
         fun parseVersion(versionExpression: Any): TomlVersion {
             if (versionExpression is TomlTable) {
-                val rejectAll = versionExpression["rejectAll"]?.toString()?.toBoolean() ?: false
+                val rejectAll = versionExpression.getBoolean(REJECT_ALL_KEY) { false }
 
                 if (rejectAll) {
-                    return TomlVersion("", "", "", listOf("+"))
+                    return REJECT_ALL_VERSION
                 }
 
-                val require = versionExpression["require"]?.toString() ?: ""
-                val strictly = versionExpression["strictly"]?.toString() ?: ""
-                val prefer = versionExpression["prefer"]?.toString() ?: ""
-                val reject = (versionExpression["reject"] as TomlArray)
+                val require = versionExpression.getString(REQUIRE_KEY) { EMPTY_STRING }
+                val strictly = versionExpression.getString(STRICTLY_KEY) { EMPTY_STRING }
+                val prefer = versionExpression.getString(PREFER_KEY) { EMPTY_STRING }
+                val reject = versionExpression.getArrayOrEmpty(REJECT_KEY)
                     .toList()
                     .map { it.toString() }
                     .toList()
@@ -69,8 +86,64 @@ class TomlParserUtils {
                     reject
                 )
             } else {
-                return TomlVersion(versionExpression.toString(), "", "", listOf())
+                return TomlVersion(versionExpression.toString())
             }
+        }
+
+        @JvmStatic
+        fun parseLibrary(libraryExpression: Any, versions: Map<String, TomlVersion>): TomlLibrary {
+            if (libraryExpression is TomlTable) {
+
+                val versionPart = libraryExpression.get(VERSION_KEY)
+
+                val version = if (versionPart == null) {
+                    // case 1: no version
+                    EMPTY_VERSION
+                } else {
+                    if (versionPart is TomlTable) {
+                        val refVersionKey = versionPart.getString(REF_KEY) { EMPTY_STRING }
+
+                        if (refVersionKey.isBlank()) {
+                            // case 2: version as object
+                            parseVersion(versionPart)
+                        } else {
+                            // case 3: ref to version
+                            versions.getOrDefault(refVersionKey, EMPTY_VERSION)
+                        }
+                    } else {
+                        // case 4: simple version
+                        TomlVersion(versionPart.toString())
+                    }
+                }
+
+                val module = libraryExpression.getString(MODULE_KEY) { EMPTY_STRING }
+
+                if (module.isBlank()) {
+                    val group = libraryExpression.getString(GROUP_KEY) { EMPTY_STRING }
+                    val name = libraryExpression.getString(NAME_KEY) { EMPTY_STRING }
+
+                    return TomlLibrary(group, name, version)
+                } else {
+                    return parseLibrarySimple(module, version)
+                }
+
+            } else {
+                return parseLibrarySimple(libraryExpression.toString())
+            }
+        }
+
+        private fun parseLibrarySimple(libraryExpression: String, defaultVersion: TomlVersion? = null): TomlLibrary {
+            val libraryParts = libraryExpression.split(":")
+                .toList()
+
+            val version = defaultVersion
+                ?: if (libraryParts.size == 3) {
+                    TomlVersion(libraryParts[2])
+                } else {
+                    EMPTY_VERSION
+                }
+
+            return TomlLibrary(libraryParts[0], libraryParts[1], version)
         }
     }
 
@@ -79,5 +152,27 @@ class TomlParserUtils {
         val strictVersion: String,
         val preferredVersion: String,
         val rejectedVersions: List<String>
-    )
+    ) {
+        constructor(requiredVersion: String) : this(requiredVersion, "", "", listOf())
+
+        constructor() : this("")
+
+        fun isEmpty(): Boolean =
+            requiredVersion.isBlank()
+                    && strictVersion.isBlank()
+                    && preferredVersion.isBlank()
+                    && rejectedVersions.isEmpty()
+
+        fun isNotEmpty(): Boolean = !isEmpty()
+    }
+
+    data class TomlLibrary(
+        val group: String,
+        val name: String,
+        val version: TomlVersion
+    ) {
+        fun isEmpty(): Boolean = group.isBlank() || name.isBlank()
+
+        fun isNotEmpty(): Boolean = !isEmpty()
+    }
 }
