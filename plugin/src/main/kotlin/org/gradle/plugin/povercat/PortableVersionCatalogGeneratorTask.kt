@@ -152,19 +152,46 @@ abstract class PortableVersionCatalogGeneratorTask : DefaultTask() {
                     appendLine()
                 }
 
-                if (plugins.isNotEmpty()) {
-                    appendLine("    object Plugins {")
+                if (bundles.isNotEmpty()) {
+                    appendLine("    object Bundles {")
 
-                    // plugins
+                    val parsedBundles = HashMap<String, List<String>>()
+
+                    bundles.forEach { (key, value) ->
+                        val bundleLibraries = TomlParserUtils.parseBundle(value)
+
+                        if (bundleLibraries.isNotEmpty()) {
+                            val bundleName = TomlParserUtils.toCamelCase(key)
+                            parsedBundles.put(bundleName, bundleLibraries)
+
+                            appendLine()
+                            appendLine("        @JvmStatic")
+                            appendLine("        val $bundleName: ExternalModuleDependencyBundle = DefaultExternalModuleDependencyBundle()")
+                        }
+                    }
+
+                    if (parsedBundles.isNotEmpty()) {
+                        appendLine()
+                        appendLine("        init {")
+
+                        appendLine(
+                            parsedBundles.map { (key, value) ->
+                                value.joinToString("\n") { "            $key.add(Libraries.$it)" }
+                            }
+                                .joinToString("\n\n")
+                        )
+
+                        appendLine("        }")
+                    }
 
                     appendLine("    }")
                     appendLine()
                 }
 
-                if (bundles.isNotEmpty()) {
-                    appendLine("    object Bundles {")
+                if (plugins.isNotEmpty()) {
+                    appendLine("    object Plugins {")
 
-                    // bundles
+                    // plugins
 
                     appendLine("    }")
                     appendLine()
@@ -199,12 +226,14 @@ abstract class PortableVersionCatalogGeneratorTask : DefaultTask() {
 
     private fun appendImports(stringBuilder: StringBuilder) {
         with(stringBuilder) {
+            appendLine("import org.gradle.api.artifacts.ExternalModuleDependencyBundle")
             appendLine("import org.gradle.api.artifacts.MinimalExternalModuleDependency")
             appendLine("import org.gradle.api.artifacts.VersionConstraint")
             appendLine("import org.gradle.api.internal.artifacts.DefaultModuleIdentifier")
             appendLine("import org.gradle.api.internal.artifacts.dependencies.DefaultImmutableVersionConstraint")
             appendLine("import org.gradle.api.internal.artifacts.dependencies.DefaultMinimalDependency")
             appendLine("import org.gradle.api.internal.artifacts.dependencies.DefaultMutableVersionConstraint")
+            appendLine("import org.gradle.api.internal.catalog.DefaultExternalModuleDependencyBundle")
         }
     }
 
