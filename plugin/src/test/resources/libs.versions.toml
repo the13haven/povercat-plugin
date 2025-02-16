@@ -21,3 +21,7 @@ test-bundle-simple = ["lib-simple-with-version", "lib-with-version-as-object"]
 
 [plugins]
 
+plugin-simple-version = { id = "com.github.ben-manes.versions", version = "0.45.0" }
+plugin-version-ref = { id = "com.test.plugin-version-ref", version.ref = "version-simple" }
+plugin-version-as-object = { id = "com.test.version-as-object", version = { prefer = "1.0.0", require = "1.0.1", strictly = "1.1.1", reject = ["0.0.1", "0.0.2"] } }
+plugin-simple-id.id = "com.text.plugin-with-id"

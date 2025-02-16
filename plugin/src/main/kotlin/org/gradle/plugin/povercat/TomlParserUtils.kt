@@ -40,9 +40,13 @@ class TomlParserUtils {
         private const val MODULE_KEY = "module"
         private const val GROUP_KEY = "group"
         private const val NAME_KEY = "name"
+        private const val ID_KEY = "id"
 
         @JvmStatic
         val EMPTY_VERSION = TomlVersion()
+
+        @JvmStatic
+        val EMPTY_PLUGIN = TomlPlugin()
 
         @JvmStatic
         val REJECT_ALL_VERSION = TomlVersion(EMPTY_STRING, EMPTY_STRING, EMPTY_STRING, listOf("+"))
@@ -94,29 +98,7 @@ class TomlParserUtils {
         @JvmStatic
         fun parseLibrary(libraryValue: Any, versions: Map<String, TomlVersion>): TomlLibrary {
             if (libraryValue is TomlTable) {
-
-                val versionPart = libraryValue.get(VERSION_KEY)
-
-                val version = if (versionPart == null) {
-                    // case 1: no version
-                    EMPTY_VERSION
-                } else {
-                    if (versionPart is TomlTable) {
-                        val refVersionKey = versionPart.getString(REF_KEY) { EMPTY_STRING }
-
-                        if (refVersionKey.isBlank()) {
-                            // case 2: version as object
-                            parseVersion(versionPart)
-                        } else {
-                            // case 3: ref to version
-                            versions.getOrDefault(refVersionKey, EMPTY_VERSION)
-                        }
-                    } else {
-                        // case 4: simple version
-                        TomlVersion(versionPart.toString())
-                    }
-                }
-
+                val version = parseInlineVersion(libraryValue.get(VERSION_KEY), versions)
                 val module = libraryValue.getString(MODULE_KEY) { EMPTY_STRING }
 
                 if (module.isBlank()) {
@@ -141,6 +123,40 @@ class TomlParserUtils {
                     .map { toCamelCase(it) }
             } else {
                 emptyList()
+            }
+        }
+
+        @JvmStatic
+        fun parsePlugin(pluginValue: Any, versions: Map<String, TomlVersion>): TomlPlugin {
+            return if (pluginValue is TomlTable) {
+                val id = pluginValue.getString(ID_KEY) { EMPTY_STRING }
+                val version = parseInlineVersion(pluginValue.get(VERSION_KEY), versions)
+
+                TomlPlugin(id, version)
+            } else {
+                EMPTY_PLUGIN
+            }
+        }
+
+        private fun parseInlineVersion(versionPart: Any?, versions: Map<String, TomlVersion>): TomlVersion {
+            return if (versionPart == null) {
+                // case 1: no version
+                EMPTY_VERSION
+            } else {
+                if (versionPart is TomlTable) {
+                    val refVersionKey = versionPart.getString(REF_KEY) { EMPTY_STRING }
+
+                    if (refVersionKey.isBlank()) {
+                        // case 2: version as object
+                        parseVersion(versionPart)
+                    } else {
+                        // case 3: ref to version
+                        versions.getOrDefault(refVersionKey, EMPTY_VERSION)
+                    }
+                } else {
+                    // case 4: simple version
+                    TomlVersion(versionPart.toString())
+                }
             }
         }
 
@@ -184,6 +200,17 @@ class TomlParserUtils {
         val version: TomlVersion
     ) {
         fun isEmpty(): Boolean = group.isBlank() || name.isBlank()
+
+        fun isNotEmpty(): Boolean = !isEmpty()
+    }
+
+    data class TomlPlugin(
+        val id: String,
+        val version: TomlVersion
+    ) {
+        constructor() : this("", EMPTY_VERSION)
+
+        fun isEmpty(): Boolean = id.isBlank() && version.isEmpty()
 
         fun isNotEmpty(): Boolean = !isEmpty()
     }
