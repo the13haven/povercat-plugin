@@ -14,6 +14,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set up SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ACTIONS_WRITE_KEY }}" > ~/.ssh/deploy_key_rsa
+          chmod 600 ~/.ssh/deploy_key_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
       - name: Checkout project sources
         uses: actions/checkout@v4
         with:
@@ -36,7 +43,7 @@ jobs:
 
       - name: Perform Release
         id: release
-        run: ./gradlew release -Prelease.customUsername=${{ github.actor }} -Prelease.customPassword=${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew release -Prelease.customKeyFile="~/.ssh/deploy_key_rsa"
 
       - name: Publish Packages
         run: ./gradlew publish -Ppublish.username=${{ github.actor }} -Ppublish.token=${{ secrets.GITHUB_TOKEN }}
