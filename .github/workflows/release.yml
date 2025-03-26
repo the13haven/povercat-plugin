@@ -43,7 +43,7 @@ jobs:
 
       - name: Perform Release
         id: release
-        run: ./gradlew release -Prelease.customKeyFile="$HOME/.ssh/deploy_key_rsa"
+        run: ./gradlew release -Prelease.customKeyFile="$HOME/.ssh/deploy_key_rsa" -Prelease.customKeyPassword=""
 
       - name: Publish Packages
         run: ./gradlew publish -Ppublish.username=${{ github.actor }} -Ppublish.token=${{ secrets.GITHUB_TOKEN }}
