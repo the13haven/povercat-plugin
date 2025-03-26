@@ -15,9 +15,9 @@
 
 package org.gradle.plugin.povercat
 
-import org.gradle.internal.impldep.org.tomlj.TomlArray
-import org.gradle.internal.impldep.org.tomlj.TomlTable
-import java.util.*
+import org.tomlj.TomlArray
+import org.tomlj.TomlTable
+import java.util.Locale
 
 
 /**

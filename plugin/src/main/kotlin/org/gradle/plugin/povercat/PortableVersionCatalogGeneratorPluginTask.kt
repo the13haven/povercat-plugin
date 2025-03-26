@@ -16,6 +16,7 @@
 package org.gradle.plugin.povercat
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
@@ -24,10 +25,13 @@ import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.SkipWhenEmpty
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.TaskProvider
+import org.gradle.kotlin.dsl.register
 import java.io.File
-import java.util.*
+import java.util.Locale
 
-abstract class PortableVersionCatalogGeneratorTask : DefaultTask() {
+
+abstract class PortableVersionCatalogGeneratorPluginTask : DefaultTask() {
 
     @get:Input
     abstract val catalogPackage: Property<String>
@@ -54,7 +58,7 @@ abstract class PortableVersionCatalogGeneratorTask : DefaultTask() {
             outputDirectory.mkdirs()
         }
 
-        val tomlFiles = tomlFiles.files
+        val filteredTomlFiles = tomlFiles.files
             .map { filePath ->
                 val tomlFile = project.file(filePath)
                 if (!tomlFile.exists()) {
@@ -65,7 +69,7 @@ abstract class PortableVersionCatalogGeneratorTask : DefaultTask() {
             }
             .filter { file -> file.extension == "toml" }
 
-        tomlFiles.forEach { tomlFile ->
+        filteredTomlFiles.forEach { tomlFile ->
             val className = TomlParserUtils.toCamelCase(tomlFile.nameWithoutExtension)
                 .replaceFirstChar { it.uppercase(Locale.getDefault()) }
 
@@ -77,9 +81,18 @@ abstract class PortableVersionCatalogGeneratorTask : DefaultTask() {
             )
 
             if (classContent.isNotBlank()) {
-                val outputFile = File(outputDirectory, "$className.kt")
+                val outputFile = File(outputDirectory, "${className}Catalog.kt")
                 outputFile.writeText(classContent)
             }
         }
+    }
+
+    companion object {
+        fun Project.generatePortableVersionCatalogTask(extension: PortableVersionCatalogGeneratorPluginExtension): TaskProvider<PortableVersionCatalogGeneratorPluginTask> =
+            tasks.register<PortableVersionCatalogGeneratorPluginTask>("generatePortableVersionCatalog") {
+                catalogPackage.set(extension.catalogPackage)
+                tomlFiles.setFrom(extension.tomlFiles)
+                outputDir.set(extension.outputDir)
+            }
     }
 }

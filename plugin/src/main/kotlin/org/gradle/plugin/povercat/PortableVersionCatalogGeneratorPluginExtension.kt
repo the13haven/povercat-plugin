@@ -20,13 +20,15 @@ import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 
-abstract class PortableVersionCatalogGeneratorPluginExtension(project: Project) {
+
+open class PortableVersionCatalogGeneratorPluginExtension(project: Project) {
 
     val catalogPackage: Property<String> = project.objects
         .property(String::class.java)
         .convention("org.gradle.version.catalog")
 
-    val tomlFiles: ConfigurableFileCollection = project.objects.fileCollection()
+    val tomlFiles: ConfigurableFileCollection = project.objects
+        .fileCollection()
         .convention("gradle/libs.versions.toml")
 
     val outputDir: DirectoryProperty = project.objects
@@ -41,4 +43,14 @@ abstract class PortableVersionCatalogGeneratorPluginExtension(project: Project) 
                         .asFile
                 )
         )
+
+    companion object {
+        fun Project.portableVersionCatalog(): PortableVersionCatalogGeneratorPluginExtension =
+            extensions.create(
+                "portableVersionCatalog",
+                PortableVersionCatalogGeneratorPluginExtension::class.java,
+                project
+            )
+
+    }
 }

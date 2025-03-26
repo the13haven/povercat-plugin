@@ -8,9 +8,14 @@ plugins {
     `kotlin-dsl`
     `maven-publish`
     alias(libs.plugins.axion.release.plugin)
+    alias(libs.plugins.testkit.jacoco.plugin)
 }
 
 dependencies {
+    implementation(libs.tomlj)
+
+    testImplementation(gradleTestKit())
+
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
@@ -18,21 +23,43 @@ dependencies {
     testImplementation(libs.mockk)
 }
 
-kotlin {
-    compilerOptions.jvmTarget.set(JvmTarget.JVM_22)
-}
-
 tasks.test {
     useJUnitPlatform()
     testLogging {
         events("passed", "skipped", "failed")
     }
+    jvmArgs(
+        "-XX:+EnableDynamicAgentLoading",
+        //listOf("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005")
+    )
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+
+    reports {
+        xml.required = false
+        csv.required = false
+        html.required = true
+        html.outputLocation = layout.buildDirectory.dir("reports/coverage/html")
+    }
+}
+
+jacoco {
+    toolVersion = libs.jacoco.get().version!!
+
+    reportsDirectory = layout.buildDirectory.dir("reposts/coverage")
+}
+
+kotlin {
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
 }
 
 gradlePlugin {
     plugins {
         register("PoVerCatPlugin") {
-            displayName = "Portable Version Catalog Plugin (PoVerCat)"
+            displayName = "Portable Version Catalog Plugin (PoVerCat Plugin)"
             id = "com.l13.plugin.povercat"
             implementationClass = "org.gradle.plugin.povercat.PortableVersionCatalogGeneratorPlugin"
             version = project.version

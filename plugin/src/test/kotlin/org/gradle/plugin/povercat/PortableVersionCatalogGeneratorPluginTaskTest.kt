@@ -30,11 +30,10 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 
-
 @ExtendWith(MockKExtension::class)
-class PortableVersionCatalogGeneratorTaskTest {
+class PortableVersionCatalogGeneratorPluginTaskTest {
 
-    private lateinit var task: TaskProvider<PortableVersionCatalogGeneratorTask>
+    private lateinit var task: TaskProvider<PortableVersionCatalogGeneratorPluginTask>
     private lateinit var project: Project
 
     @TempDir
@@ -43,7 +42,7 @@ class PortableVersionCatalogGeneratorTaskTest {
     @BeforeEach
     fun setUp() {
         project = ProjectBuilder.builder().build()
-        task = project.tasks.register("generateCatalog", PortableVersionCatalogGeneratorTask::class.java)
+        task = project.tasks.register("generateCatalog", PortableVersionCatalogGeneratorPluginTask::class.java)
 
         task.get().catalogPackage.set("com.example.catalog")
         task.get().outputDir.set(tempDir)
@@ -105,7 +104,7 @@ class PortableVersionCatalogGeneratorTaskTest {
 
         task.get().executeTask()
 
-        val generatedFile = File(tempDir, "com/example/catalog/Valid.kt")
+        val generatedFile = File(tempDir, "com/example/catalog/ValidCatalog.kt")
         assertTrue(generatedFile.exists())
         assertTrue(generatedFile.readText().contains("class Valid {}"))
     }

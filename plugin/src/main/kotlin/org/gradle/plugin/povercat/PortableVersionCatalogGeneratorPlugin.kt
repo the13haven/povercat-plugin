@@ -18,30 +18,24 @@ package org.gradle.plugin.povercat
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.get
-import org.gradle.kotlin.dsl.register
+import org.gradle.plugin.povercat.PortableVersionCatalogGeneratorPluginExtension.Companion.portableVersionCatalog
+import org.gradle.plugin.povercat.PortableVersionCatalogGeneratorPluginTask.Companion.generatePortableVersionCatalogTask
 
-class PortableVersionCatalogGeneratorPlugin : Plugin<Project> {
+abstract class PortableVersionCatalogGeneratorPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
 
         // register extension
-        val extension = project.extensions.create(
-            "versionCatalog",
-            PortableVersionCatalogGeneratorPluginExtension::class.java,
-            project
-        )
+        val extension = project.portableVersionCatalog()
 
         // register task
-        project.tasks.register<PortableVersionCatalogGeneratorTask>("generateVersionCatalogClasses") {
-            catalogPackage.set(extension.catalogPackage)
-            tomlFiles.setFrom(extension.tomlFiles)
-            outputDir.set(extension.outputDir)
-        }
+        val task = project.generatePortableVersionCatalogTask(extension)
 
         // arrange tasks in a sequential chain
-        project.tasks.named("compileKotlin") {
-            dependsOn("generateVersionCatalogClasses")
-        }
+        project.tasks
+            .named("compileKotlin") {
+                dependsOn(task)
+            }
 
         project.extensions
             .getByType(org.gradle.api.tasks.SourceSetContainer::class.java)["main"]

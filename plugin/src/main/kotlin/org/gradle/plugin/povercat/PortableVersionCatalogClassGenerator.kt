@@ -15,14 +15,17 @@
 
 package org.gradle.plugin.povercat
 
-import org.gradle.internal.impldep.org.tomlj.Toml
-import org.gradle.internal.impldep.org.tomlj.TomlParseResult
+import org.gradle.api.logging.Logging
+import org.tomlj.Toml
+import org.tomlj.TomlParseResult
 import java.io.File
 import java.time.LocalDate
 
 class PortableVersionCatalogClassGenerator {
 
     companion object {
+
+        private val logger = Logging.getLogger(PortableVersionCatalogClassGenerator::class.java)
 
         @JvmStatic
         fun generateClass(file: File, catalogPackage: String, className: String, projectVersion: String): String =
@@ -59,7 +62,9 @@ class PortableVersionCatalogClassGenerator {
                     appendLine("}")
                 }
             } catch (e: Exception) {
-                ""
+                logger.error("An error occurred while generation portable version catalog {}", className, e)
+
+                throw e
             }
 
 
