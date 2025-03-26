@@ -21,6 +21,11 @@ jobs:
           chmod 600 ~/.ssh/deploy_key_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
+      - name: Checkout project sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -32,11 +37,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: wrapper
-
-      - name: Checkout project sources
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Build Sources
         run: ./gradlew build --no-daemon
