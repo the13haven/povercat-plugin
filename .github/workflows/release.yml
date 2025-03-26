@@ -1,4 +1,4 @@
-name: Perform PoVerCat Release
+name: PoVerCat Release
 
 on:
   workflow_dispatch:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'liberica'
-          java-version: 23
+          java-version: 21
           cache: 'gradle'
 
       - name: Setup Gradle
@@ -43,7 +43,7 @@ jobs:
 
       - name: Perform Release
         id: release
-        run: ./gradlew release -Prelease.customKeyFile="~/.ssh/deploy_key_rsa"
+        run: ./gradlew release -Prelease.customKeyFile="$HOME/.ssh/deploy_key_rsa"
 
       - name: Publish Packages
         run: ./gradlew publish -Ppublish.username=${{ github.actor }} -Ppublish.token=${{ secrets.GITHUB_TOKEN }}

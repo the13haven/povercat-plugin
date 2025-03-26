@@ -1,4 +1,4 @@
-name: Dependency Submission (Dependabot)
+name: PoVerCat Dependency Submission
 
 on:
   push:
@@ -8,16 +8,18 @@ permissions:
   contents: write
 
 jobs:
-  dependency-submission:
+  submit-dependencies:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'liberica'
-          java-version: 23
+          java-version: 21
           cache: 'gradle'
+
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@v4
