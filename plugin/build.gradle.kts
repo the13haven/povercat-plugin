@@ -24,26 +24,12 @@ dependencies {
     testImplementation(libs.mockk)
 }
 
-tasks.test {
-    useJUnitPlatform()
-    testLogging {
-        events("passed", "skipped", "failed")
-    }
-    jvmArgs(
-        "-XX:+EnableDynamicAgentLoading",
-        //listOf("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005")
-    )
-    finalizedBy(tasks.jacocoTestReport)
-}
+kotlin {
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
 
-tasks.jacocoTestReport {
-    dependsOn(tasks.test)
-
-    reports {
-        xml.required = false
-        csv.required = false
-        html.required = true
-        html.outputLocation = layout.buildDirectory.dir("reports/coverage/html")
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of("21"))
+        vendor.set(JvmVendorSpec.BELLSOFT)
     }
 }
 
@@ -51,10 +37,6 @@ jacoco {
     toolVersion = libs.jacoco.get().version!!
 
     reportsDirectory = layout.buildDirectory.dir("reposts/coverage")
-}
-
-kotlin {
-    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
 }
 
 gradlePlugin {
@@ -82,8 +64,11 @@ publishing {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/SergiusSidorov/haven-gradle-convention")
             credentials {
-                username = project.findProperty("publish.username") as String? ?: System.getenv("USERNAME")
-                password = project.findProperty("publish.token") as String? ?: System.getenv("TOKEN")
+                username = project.findProperty("publish.username") as String? ?:
+                    providers.environmentVariable("USERNAME").getOrElse("")
+
+                password = project.findProperty("publish.token") as String? ?:
+                    providers.environmentVariable("TOKEN").getOrElse("")
             }
         }
     }
@@ -125,5 +110,28 @@ scmVersion {
             commit { releaseVersion, _ -> "Release v${releaseVersion}" }
             push()
         }
+    }
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
+    jvmArgs(
+        //"-XX:+EnableDynamicAgentLoading",
+        //listOf("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005")
+    )
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+
+    reports {
+        xml.required = false
+        csv.required = false
+        html.required = true
+        html.outputLocation = layout.buildDirectory.dir("reports/coverage/html")
     }
 }
