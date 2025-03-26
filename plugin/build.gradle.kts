@@ -1,5 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import pl.allegro.tech.build.axion.release.domain.hooks.HookContext
+import pl.allegro.tech.build.axion.release.domain.preRelease
 
 group = "com.l13.plugin"
 project.version = scmVersion.version
@@ -114,26 +115,15 @@ scmVersion {
     }
 
     hooks {
-//        preRelease {
-//            fileUpdate {
-//                encoding = "utf-8"
-//                file("README.md")
-//                pattern = { previousVersion: String, _: HookContext -> "v$previousVersion" }
-//                replacement = { currentVersion: String, _: HookContext -> "v$currentVersion" }
-//            }
-//        }
-
-        // workaround, will be replaced with preRelease hook and fileUpdate
-        pre(
-            "fileUpdate",
-            mapOf(
-                "encoding" to "utf-8",
-                "file" to file("README.md"),
-                "pattern" to KotlinClosure2({ previousVersion: String, _: HookContext -> "v$previousVersion" }),
-                "replacement" to KotlinClosure2({ currentVersion: String, _: HookContext -> "v$currentVersion" })
-            )
-        )
-
-        pre("commit")
+        preRelease {
+            fileUpdate {
+                encoding = "utf-8"
+                file("README.md")
+                pattern = { previousVersion: String, _: HookContext -> "v$previousVersion" }
+                replacement = { currentVersion: String, _: HookContext -> "v$currentVersion" }
+            }
+            commit { releaseVersion, _ -> "Release v${releaseVersion}" }
+            push()
+        }
     }
 }
