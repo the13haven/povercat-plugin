@@ -1,4 +1,4 @@
-name: Dependency Submission (Dependabot)
+name: PoVerCat Dependency Submission
 
 on:
   push:

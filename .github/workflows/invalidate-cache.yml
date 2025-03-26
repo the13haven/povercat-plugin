@@ -1,4 +1,4 @@
-name: Clear cache
+name: PoVerCat Clear cache
 
 on:
   workflow_dispatch:

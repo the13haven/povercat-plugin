@@ -1,4 +1,4 @@
-name: Perform PoVerCat Release
+name: PoVerCat Release
 
 on:
   workflow_dispatch:
