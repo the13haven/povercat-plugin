@@ -2,7 +2,7 @@
 
 tomlj = "1.1.1"
 
-axion-release-plugin = "1.18.16"
+axion-release-plugin = "1.18.18"
 
 junit = "5.11.4"
 junit-platform = "1.11.4"
