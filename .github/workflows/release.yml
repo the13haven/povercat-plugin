@@ -26,6 +26,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set git to use SSH
+        run: |
+          git config --global user.name "release-bot"
+          git config --global user.email "release-bot@noreply.github.com"
+          git remote set-url origin git@github.com:SergiusSidorov/povercat-plugin.git
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
