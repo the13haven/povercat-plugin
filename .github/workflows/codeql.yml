@@ -14,6 +14,10 @@ name: PoVerCat CodeQL Analyze
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+
   pull_request:
     branches: [ "main" ]
     paths-ignore:
