@@ -62,7 +62,7 @@ publishing {
 
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/SergiusSidorov/haven-gradle-convention")
+            url = uri("https://maven.pkg.github.com/SergiusSidorov/povercat-plugin")
             credentials {
                 username = project.findProperty("publish.username") as String? ?:
                     providers.environmentVariable("USERNAME").getOrElse("")
@@ -77,11 +77,12 @@ publishing {
 scmVersion {
     localOnly.set(false)
     useHighestVersion.set(true)
+    versionIncrementer("incrementPatch")
+    releaseOnlyOnReleaseBranches = true
 
     tag {
         prefix.set("v")
         initialVersion { _, _ -> "0.0.0" }
-        releaseOnlyOnReleaseBranches = true
     }
 
     repository {
@@ -108,7 +109,6 @@ scmVersion {
                 replacement = { currentVersion: String, _: HookContext -> "v$currentVersion" }
             }
             commit { releaseVersion, _ -> "Release v${releaseVersion}" }
-            push()
         }
     }
 }
