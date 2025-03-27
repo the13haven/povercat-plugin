@@ -1,4 +1,4 @@
-# Gradle POVERCAT Generator Plugin v0.0.1
+# Gradle POVERCAT Generator Plugin v0.0.0
 
 POVERCAT - stands for **PO**rtable **VER**sion **CAT**alog
 
