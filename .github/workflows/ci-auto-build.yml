@@ -38,3 +38,23 @@ jobs:
 
       - name: Run build with Gradle Wrapper
         run: ./gradlew build --no-daemon
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: SergiusSidorov/povercat-plugin
+          files: build/reports/coverage/coverage.xml
+          fail_ci_if_error: true
+          verbose: true
+
+      - name: Upload test reports to Codecov
+        uses: codecov/test-results-action@v1
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: SergiusSidorov/povercat-plugin
+          flags: tests
+          directory: plugin/build/test-results/test
+          fail_ci_if_error: true
