@@ -8,7 +8,7 @@ junit = "5.12.1"
 junit-platform = "1.12.1"
 mockk = "1.13.17"
 
-jacoco = "0.8.12"
+jacoco = "0.8.13"
 testkit-jacoco-plugin = "1.0.3"
 
 [libraries]
