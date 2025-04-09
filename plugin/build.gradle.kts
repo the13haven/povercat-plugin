@@ -111,8 +111,8 @@ scmVersion {
             fileUpdate {
                 encoding = "utf-8"
                 file("README.md")
-                pattern = { previousVersion: String, _: HookContext -> "v$previousVersion" }
-                replacement = { currentVersion: String, _: HookContext -> "v$currentVersion" }
+                pattern = { previousVersion: String, _: HookContext -> "version \"$previousVersion\"" }
+                replacement = { currentVersion: String, _: HookContext -> "version \"$currentVersion\"" }
             }
             commit { releaseVersion, _ -> "Release v${releaseVersion}" }
         }

@@ -1,4 +1,4 @@
-# Gradle POVERCAT Generator Plugin v0.0.1
+# Gradle POVERCAT Generator Plugin
 
 [![Release](https://img.shields.io/github/v/release/the13haven/povercat-plugin?sort=semver&display_name=release&style=flat-square&label=Release&logo=github)](https://github.com/the13haven/povercat-plugin/releases)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=flat-square&logo=github)](https://github.com/the13haven/povercat-plugin/blob/main/LICENSE)
@@ -34,7 +34,7 @@ PoVerCat is a Gradle plugin that generates a kotlin class from a TOML based vers
 #### Apply the plugin
 ```kotlin
 plugins {
-    id("com.l13.plugin.povercat") version "<latest-version>"
+    id("com.l13.plugin.povercat") version "0.0.1"
 }
 ```
 

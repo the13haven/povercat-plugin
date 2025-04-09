@@ -72,7 +72,7 @@ class PortableVersionCatalogGeneratorPluginTest {
             plugins {
                 `kotlin-dsl`
                 id("jacoco-testkit-coverage")
-                id("com.l13.plugin.povercat")
+                id("com.the13haven.povercat")
             }
 
             portableVersionCatalog {
