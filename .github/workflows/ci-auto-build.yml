@@ -75,12 +75,10 @@ jobs:
       - name: FOSSA Scan
         uses: fossas/fossa-action@1
         with:
-          debug: true
-          api-key: ${{secrets.FOSSA_API_KEY}}
+          api-key: ${{ secrets.FOSSA_API_KEY }}
 
       - name: FOSSA Test
         uses: fossas/fossa-action@1
         with:
-          debug: true
-          api-key: ${{secrets.FOSSA_API_KEY}}
+          api-key: ${{ secrets.FOSSA_API_KEY }}
           run-tests: true
