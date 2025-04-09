@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.gradle.plugin.povercat
+package com.the13haven.gradle.povercat
 
 import org.gradle.api.logging.Logging
 import org.tomlj.Toml
@@ -21,6 +21,11 @@ import org.tomlj.TomlParseResult
 import java.io.File
 import java.time.LocalDate
 
+/**
+ * PoVerCat Plugin Generator.
+ *
+ * @author ssidorov@the13haven.com
+ */
 class PortableVersionCatalogClassGenerator {
 
     companion object {

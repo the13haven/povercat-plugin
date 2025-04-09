@@ -13,14 +13,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.gradle.plugin.povercat
+package com.the13haven.gradle.povercat
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.get
-import org.gradle.plugin.povercat.PortableVersionCatalogGeneratorPluginExtension.Companion.portableVersionCatalog
-import org.gradle.plugin.povercat.PortableVersionCatalogGeneratorPluginTask.Companion.generatePortableVersionCatalogTask
+import com.the13haven.gradle.povercat.PortableVersionCatalogGeneratorPluginExtension.Companion.portableVersionCatalog
+import com.the13haven.gradle.povercat.PortableVersionCatalogGeneratorPluginTask.Companion.generatePortableVersionCatalogTask
 
+
+/**
+ * PoVerCat Plugin.
+ *
+ * @author ssidorov@the13haven.com
+ */
 abstract class PortableVersionCatalogGeneratorPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {

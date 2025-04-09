@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import pl.allegro.tech.build.axion.release.domain.hooks.HookContext
 import pl.allegro.tech.build.axion.release.domain.preRelease
 
-group = "com.l13.plugin"
+group = "com.the13haven"
 project.version = scmVersion.version
 
 plugins {
@@ -42,10 +42,16 @@ jacoco {
 gradlePlugin {
     plugins {
         register("PoVerCatPlugin") {
-            displayName = "Portable Version Catalog Plugin (PoVerCat Plugin)"
-            id = "com.l13.plugin.povercat"
-            implementationClass = "org.gradle.plugin.povercat.PortableVersionCatalogGeneratorPlugin"
+            id = "com.the13haven.povercat"
             version = project.version
+            implementationClass = "com.the13haven.gradle.povercat.PortableVersionCatalogGeneratorPlugin"
+
+            displayName = "Portable Version Catalog Plugin (PoVerCat Plugin)"
+            description = "PoVerCat is a Gradle plugin that generates a kotlin class from a TOML based version catalog and distribute it as a dependency."
+            tags.set(listOf("version catalog", "toml", "code generation", "kotlin", "java"))
+
+            website.set("https://github.com/the13haven/povercat-plugin")
+            vcsUrl.set("https://github.com/the13haven/povercat-plugin")
         }
     }
 }
@@ -62,7 +68,7 @@ publishing {
 
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/SergiusSidorov/povercat-plugin")
+            url = uri("https://maven.pkg.github.com/the13haven/povercat-plugin")
             credentials {
                 username = project.findProperty("publish.username") as String? ?:
                     providers.environmentVariable("USERNAME").getOrElse("")

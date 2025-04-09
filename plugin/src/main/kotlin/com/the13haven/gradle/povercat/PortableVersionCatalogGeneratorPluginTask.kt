@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.gradle.plugin.povercat
+package com.the13haven.gradle.povercat
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
@@ -30,7 +30,11 @@ import org.gradle.kotlin.dsl.register
 import java.io.File
 import java.util.Locale
 
-
+/**
+ * PoVerCat Plugin Task.
+ *
+ * @author ssidorov@the13haven.com
+ */
 abstract class PortableVersionCatalogGeneratorPluginTask : DefaultTask() {
 
     @get:Input
