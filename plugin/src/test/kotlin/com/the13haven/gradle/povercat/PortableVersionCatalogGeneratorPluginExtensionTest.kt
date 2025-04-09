@@ -60,7 +60,7 @@ class PortableVersionCatalogGeneratorPluginExtensionTest {
 
     @Test
     fun `should have default outputDir value`() {
-        val expectedDir = project.layout.buildDirectory.dir("generated/sources/versionCatalog").get().asFile
+        val expectedDir = project.layout.buildDirectory.dir("build/generated/sources").get().asFile
         assertEquals(expectedDir, extension.outputDir.get().asFile)
     }
 
