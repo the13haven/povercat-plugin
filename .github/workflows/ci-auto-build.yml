@@ -66,6 +66,7 @@ jobs:
   fossa-scan:
 
     if: ${{ github.event_name == 'pull_request' }}
+
     runs-on: ubuntu-latest
 
     steps:
@@ -73,18 +74,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: FOSSA Scan
-        uses: fossas/fossa-action@1
+        uses: fossas/fossa-action@main
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
           debug: true
 
-      - uses: actions/upload-artifact@v3
-        with:
-          name: fossa.debug.json.gz
-          path: ./fossa.debug.json.gz
-
       - name: FOSSA Test
-        uses: fossas/fossa-action@1
+        uses: fossas/fossa-action@main
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
           run-tests: true

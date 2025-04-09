@@ -40,11 +40,11 @@ plugins {
 
 #### Configure the plugin (Optional)
 
-By default, the plugin looks for the libs.versions.toml file in the gradle directory, which is the standard location for the version catalog. However, you can override this behavior or specify multiple sources—each of which will be transformed into a separate Java class.
+By default, the plugin looks for the `libs.versions.toml` file in the gradle directory, which is the standard location for the version catalog. However, you can override this behavior or specify multiple sources—each of which will be transformed into a separate Java class.
 
-The default package for the generated classes is org.gradle.version.catalog. This too can be customized via plugin configuration.
+The default package for the generated classes is `org.gradle.version.catalog`. This too can be customized via plugin configuration.
 
-By default, the generated source files are placed under build/generated/sources. You can also override this output directory if needed.
+By default, the generated source files are placed under `build/generated/sources`. You can also override this output directory if needed.
 
 Below is an example of how to override the default settings:
 
@@ -58,7 +58,7 @@ portableVersionCatalog {
 
 ### Run the Task
 
-By default, the plugin is executed automatically before the **_compileKotlin_** task. However, you can also trigger it manually using the **_generatePortableVersionCatalog_** task:
+By default, the plugin is executed automatically before the `compileKotlin` task. However, you can also trigger it manually using the `generatePortableVersionCatalog` task:
 
 ```shell
 ./gradlew generatePortableVersionCatalog
