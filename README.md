@@ -25,20 +25,33 @@ PoVerCat is a Gradle plugin that generates a kotlin class from a TOML based vers
 * Seamless integration with Gradle projects
 * Minimal settings for default case
 
-## Installation
+## Plugin usage
 
+### Apply the plugin
 
+To share a version catalog across multiple projects, you need to apply and configure the PoVerCat plugin in the project that defines the catalog.
 
-## Usage
+The plugin is published to the official Gradle Plugin Portal, so to use it, you must first ensure that the plugin portal repository is available in your project.
 
-#### Apply the plugin
+Add the following to your `settings.gradle.kts` to enable access to the Gradle Plugin Portal:
+
+```kotlin
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+    }
+}
+```
+
+Then, apply the plugin in your `build.gradle.kts` file:
+
 ```kotlin
 plugins {
     id("com.l13.plugin.povercat") version "0.0.1"
 }
 ```
 
-#### Configure the plugin (Optional)
+### Configure the plugin (Optional)
 
 By default, the plugin looks for the `libs.versions.toml` file in the gradle directory, which is the standard location for the version catalog. However, you can override this behavior or specify multiple sources—each of which will be transformed into a separate Java class.
 
@@ -46,7 +59,7 @@ The default package for the generated classes is `org.gradle.version.catalog`. T
 
 By default, the generated source files are placed under `build/generated/sources`. You can also override this output directory if needed.
 
-Below is an example of how to override the default settings:
+Below is an example of how to override the default settings in `build.gradle.kts`:
 
 ```kotlin
 portableVersionCatalog {
@@ -64,7 +77,31 @@ By default, the plugin is executed automatically before the `compileKotlin` task
 ./gradlew generatePortableVersionCatalog
 ```
 
-### Contributing
+## Generated Version Catalog Usage
+
+The generated class (classes) can be used both within the same project or in other projects. If you want to use it in a different project, you need to add a dependency on the artifact that contains the generated class.
+
+For example, in your `build.gradle.kts`:
+
+```kotlin
+dependencies {
+    implementation("<group.name>:<artifact-name>:<version>")
+}
+```
+
+Once the dependency is in place, you can use the version values directly in your code:
+
+```kotlin
+fun configureExtensions(extensions: ExtensionContainer, project: Project) {
+    extensions.configure<JacocoPluginExtension> {
+        toolVersion = LibsVersions.Libraries.jacocoTool.version!!
+    }
+}
+```
+
+This approach allows you to build convention plugins with preconfigured tools using centralized version definitions that are consistent across your project ecosystem.
+
+## Contributing
 
 We welcome contributions!
 
