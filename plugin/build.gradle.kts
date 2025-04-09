@@ -145,3 +145,18 @@ tasks.jacocoTestReport {
         html.outputLocation = layout.buildDirectory.dir("reports/coverage/html")
     }
 }
+
+tasks.jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                counter
+                minimum = BigDecimal.valueOf(0.9)
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
+}
