@@ -77,10 +77,11 @@ jobs:
         uses: fossas/fossa-action@main
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
-          debug: true
+          project: povercat-plugin
 
       - name: FOSSA Test
         uses: fossas/fossa-action@main
         with:
           api-key: ${{ secrets.FOSSA_API_KEY }}
+          project: povercat-plugin
           run-tests: true
