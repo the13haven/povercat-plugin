@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.gradle.plugin.povercat
+package com.the13haven.gradle.povercat
 
 import org.tomlj.TomlArray
 import org.tomlj.TomlTable
@@ -23,7 +23,7 @@ import java.util.Locale
 /**
  * Utilities for parsing .toml file.
  *
- * @author ssidorov
+ * @author ssidorov@the13haven.com
  */
 class TomlParserUtils {
 

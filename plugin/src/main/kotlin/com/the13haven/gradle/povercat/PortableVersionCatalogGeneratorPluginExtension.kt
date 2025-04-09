@@ -13,14 +13,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.gradle.plugin.povercat
+package com.the13haven.gradle.povercat
 
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 
-
+/**
+ * PoVerCat Plugin Extension.
+ *
+ * @author ssidorov@the13haven.com
+ */
 open class PortableVersionCatalogGeneratorPluginExtension(project: Project) {
 
     val catalogPackage: Property<String> = project.objects
@@ -38,7 +42,7 @@ open class PortableVersionCatalogGeneratorPluginExtension(project: Project) {
                 .directoryProperty()
                 .fileValue(
                     project.layout
-                        .buildDirectory.dir("generated/sources/versionCatalog")
+                        .buildDirectory.dir("build/generated/sources")
                         .get()
                         .asFile
                 )
@@ -51,6 +55,5 @@ open class PortableVersionCatalogGeneratorPluginExtension(project: Project) {
                 PortableVersionCatalogGeneratorPluginExtension::class.java,
                 project
             )
-
     }
 }

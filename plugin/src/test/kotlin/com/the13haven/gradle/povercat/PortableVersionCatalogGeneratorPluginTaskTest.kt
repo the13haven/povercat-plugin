@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.gradle.plugin.povercat
+package com.the13haven.gradle.povercat
 
 import io.mockk.every
 import io.mockk.junit5.MockKExtension
@@ -30,6 +30,12 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 
+
+/**
+ * Test cases for PoVerCat Plugin Task.
+ *
+ * @author ssidorov@the13haven.com
+ */
 @ExtendWith(MockKExtension::class)
 class PortableVersionCatalogGeneratorPluginTaskTest {
 

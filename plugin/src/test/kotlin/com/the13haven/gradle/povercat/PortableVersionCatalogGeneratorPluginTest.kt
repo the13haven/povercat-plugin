@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.gradle.plugin.povercat
+package com.the13haven.gradle.povercat
 
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -21,6 +21,12 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
 
+
+/**
+ * Test cases for PoVerCat Plugin.
+ *
+ * @author ssidorov@the13haven.com
+ */
 class PortableVersionCatalogGeneratorPluginTest {
     @TempDir
     lateinit var projectDir: File
@@ -29,8 +35,6 @@ class PortableVersionCatalogGeneratorPluginTest {
 
     @Test
     fun `apply plugin and verify task exists`() {
-        println(projectDir.absolutePath)
-
         // 1. Create test build.gradle.kts
         writeBuildFile()
 
@@ -46,7 +50,6 @@ class PortableVersionCatalogGeneratorPluginTest {
         // 3. Run Gradle task
         val result = GradleRunner.create()
             .withProjectDir(projectDir)
-            //.withTestKitDir(projectDir)
             .withPluginClasspath()
             .withArguments("generatePortableVersionCatalog", "--info")
             .withDebug(true)
@@ -69,7 +72,7 @@ class PortableVersionCatalogGeneratorPluginTest {
             plugins {
                 `kotlin-dsl`
                 id("jacoco-testkit-coverage")
-                id("com.l13.plugin.povercat")
+                id("com.the13haven.povercat")
             }
 
             portableVersionCatalog {

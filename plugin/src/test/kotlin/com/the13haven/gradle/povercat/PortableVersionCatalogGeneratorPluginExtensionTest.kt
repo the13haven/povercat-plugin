@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.gradle.plugin.povercat
+package com.the13haven.gradle.povercat
 
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
@@ -22,7 +22,11 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-
+/**
+ * Test cases for PoVerCat Plugin Extension.
+ *
+ * @author ssidorov@the13haven.com
+ */
 class PortableVersionCatalogGeneratorPluginExtensionTest {
 
     private val project: Project = ProjectBuilder.builder().build()
@@ -56,7 +60,7 @@ class PortableVersionCatalogGeneratorPluginExtensionTest {
 
     @Test
     fun `should have default outputDir value`() {
-        val expectedDir = project.layout.buildDirectory.dir("generated/sources/versionCatalog").get().asFile
+        val expectedDir = project.layout.buildDirectory.dir("build/generated/sources").get().asFile
         assertEquals(expectedDir, extension.outputDir.get().asFile)
     }
 

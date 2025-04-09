@@ -30,7 +30,7 @@ jobs:
         run: |
           git config --global user.name "release-bot"
           git config --global user.email "release-bot@noreply.github.com"
-          git remote set-url origin git@github.com:SergiusSidorov/povercat-plugin.git
+          git remote set-url origin git@github.com:the13haven/povercat-plugin.git
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -51,8 +51,11 @@ jobs:
         id: release
         run: ./gradlew release -Prelease.customKeyFile="$HOME/.ssh/deploy_key_rsa" -Prelease.customKeyPassword=""
 
-      - name: Publish Packages
-        run: ./gradlew publish -Ppublish.username=${{ github.actor }} -Ppublish.token=${{ secrets.GITHUB_TOKEN }}
+      - name: Publish to Gradle Plugin Portal
+        run: ./gradlew publishPlugins -Pgradle.publish.key=${{ GRADLE_PUBLISH_KEY }} -Pgradle.publish.secret=${{ GRADLE_PUBLISH_SECRET }}
+
+#      - name: Publish Packages
+#        run: ./gradlew publish -Ppublish.username=${{ github.actor }} -Ppublish.token=${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Release Marker
         env:
