@@ -7,7 +7,7 @@ project.version = scmVersion.version
 
 plugins {
     `kotlin-dsl`
-    `maven-publish`
+    alias(libs.plugins.gradle.plugin.publish)
     alias(libs.plugins.axion.release.plugin)
     alias(libs.plugins.testkit.jacoco.plugin)
 }
