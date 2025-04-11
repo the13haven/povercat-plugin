@@ -47,7 +47,7 @@ Then, apply the plugin in your `build.gradle.kts` file:
 
 ```kotlin
 plugins {
-    id("com.l13.plugin.povercat") version "0.0.2"
+    id("com.l13.plugin.povercat") version "0.0.1"
 }
 ```
 
