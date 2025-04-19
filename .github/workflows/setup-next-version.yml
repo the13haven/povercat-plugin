@@ -50,4 +50,4 @@ jobs:
           gradle-version: wrapper
 
       - name: Setup next version marker
-        run: ./gradlew markNextVersion -Prelease.version=${{ github.event.inputs.nextVersion }}
+        run: ./gradlew markNextVersion -Prelease.version=${{ github.event.inputs.nextVersion }} -Prelease.customKeyFile="$HOME/.ssh/deploy_key_rsa" -Prelease.customKeyPassword=""
