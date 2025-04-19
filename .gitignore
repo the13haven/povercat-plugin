@@ -25,3 +25,6 @@ build
 
 # idea
 .idea/**
+
+# kotlin
+.kotlin/**
