@@ -1,0 +1,53 @@
+name: PoVerCat Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      nextVersion:
+        description: 'Enter next version'
+        required: true
+        type: string
+
+permissions:
+  actions: write
+  contents: write
+  packages: write
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ACTIONS_WRITE_KEY }}" > ~/.ssh/deploy_key_rsa
+          chmod 600 ~/.ssh/deploy_key_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      - name: Checkout project sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set git to use SSH
+        run: |
+          git config --global user.name "release-bot"
+          git config --global user.email "release-bot@noreply.the13haven.com"
+          git remote set-url origin git@github.com:the13haven/povercat-plugin.git
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'liberica'
+          java-version: 21
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: wrapper
+
+      - name: Setup next version marker
+        run: ./gradlew markNextVersion -Prelease.version=${{ github.event.inputs.nextVersion }}
