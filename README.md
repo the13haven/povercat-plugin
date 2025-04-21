@@ -1,5 +1,7 @@
 # Gradle POVERCAT Generator Plugin
 
+![](https://repository-images.githubusercontent.com/915818616/e467186d-18a8-4010-8d98-2ab41de9137b)
+
 [![Release](https://img.shields.io/github/v/release/the13haven/povercat-plugin?sort=semver&display_name=release&style=flat-square&label=Release&logo=github)](https://github.com/the13haven/povercat-plugin/releases)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=flat-square&logo=github)](https://github.com/the13haven/povercat-plugin/blob/main/LICENSE)
 [![Build](https://img.shields.io/github/actions/workflow/status/the13haven/povercat-plugin/ci-auto-build.yml?branch=main&style=flat-square&label=Build&logo=githubactions)](https://github.com/the13haven/povercat-plugin/actions/workflows/ci-auto-build.yml)
@@ -13,9 +15,9 @@
 ---
 ## Overview
 
-POVERCAT - stands for **PO**rtable **VER**sion **CAT**alog
+<span style="color:orange;font-weight:900;">POVERCAT</span> is an abbreviation of the words <span style="color:orange;font-weight:900;">PO</span>rtable <span style="color:orange;font-weight:900;">VER</span>sion <span style="color:orange;font-weight:900;">CAT</span>alog
 
-PoVerCat is a Gradle plugin that generates a kotlin class from a TOML based version catalog and distribute it as a dependency.
+Povercat is a Gradle plugin that generates a kotlin class from a TOML based version catalog and distribute it as a dependency.
 
 ## Features
 
@@ -29,7 +31,7 @@ PoVerCat is a Gradle plugin that generates a kotlin class from a TOML based vers
 
 ### Apply the plugin
 
-To share a version catalog across multiple projects, you need to apply and configure the PoVerCat plugin in the project that defines the catalog.
+To share a version catalog across multiple projects, you need to apply and configure the Povercat plugin in the project that defines the catalog.
 
 The plugin is published to the official Gradle Plugin Portal, so to use it, you must first ensure that the plugin portal repository is available in your project.
 
