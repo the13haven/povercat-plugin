@@ -6,7 +6,7 @@ axion-release-plugin = "1.18.18"
 
 junit = "5.13.1"
 junit-platform = "1.13.1"
-mockk = "1.14.2"
+mockk = "1.14.4"
 
 jacoco = "0.8.13"
 testkit-jacoco-plugin = "1.0.3"
