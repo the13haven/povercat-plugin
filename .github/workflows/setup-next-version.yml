@@ -27,7 +27,7 @@ jobs:
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
       - name: Checkout project sources
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
