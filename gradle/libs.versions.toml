@@ -10,7 +10,7 @@ mockk = "1.14.9"
 
 jacoco = "0.8.14"
 testkit-jacoco-plugin = "1.0.5"
-gradle-plugin-publish = "2.0.0"
+gradle-plugin-publish = "2.1.0"
 
 [libraries]
 
