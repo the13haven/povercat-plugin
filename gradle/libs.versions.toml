@@ -4,8 +4,9 @@ tomlj = "1.1.1"
 
 axion-release-plugin = "1.21.1"
 
-junit = "6.0.3"
+junit = "6.1.0"
 junit-platform = "6.1.0"
+
 mockk = "1.14.9"
 
 jacoco = "0.8.14"
