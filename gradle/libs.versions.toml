@@ -10,7 +10,7 @@ junit-platform = "6.1.0"
 mockk = "1.14.9"
 
 jacoco = "0.8.14"
-testkit-jacoco-plugin = "1.0.5"
+testkit-jacoco-plugin = "1.1.0"
 gradle-plugin-publish = "2.1.1"
 
 [libraries]
