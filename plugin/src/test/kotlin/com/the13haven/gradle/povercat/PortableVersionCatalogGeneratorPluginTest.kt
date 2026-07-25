@@ -16,6 +16,8 @@
 package com.the13haven.gradle.povercat
 
 import org.gradle.testkit.runner.GradleRunner
+import org.gradle.testkit.runner.TaskOutcome
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -34,7 +36,7 @@ class PortableVersionCatalogGeneratorPluginTest {
     val versionsFileName = "versions.toml"
 
     @Test
-    fun `apply plugin and verify task exists`() {
+    fun `generate catalog with reusable configuration cache`() {
         // 1. Create test build.gradle.kts
         writeBuildFile()
 
@@ -48,24 +50,51 @@ class PortableVersionCatalogGeneratorPluginTest {
         srcMainJava.mkdirs()
 
         // 3. Run Gradle task
-        val result = GradleRunner.create()
+        val runner = GradleRunner.create()
             .withProjectDir(projectDir)
             .withPluginClasspath()
-            .withArguments("generatePortableVersionCatalog", "--info")
-            .withDebug(true)
+            .withArguments(
+                "generatePortableVersionCatalog",
+                "--configuration-cache",
+                "--configuration-cache-problems=fail"
+            )
             .forwardOutput()
-            .build()
+
+        val firstRun = runner.build()
 
         // 4. Verify
-        assertTrue(result.output.contains("BUILD SUCCESSFUL"))
+        assertEquals(
+            TaskOutcome.SUCCESS,
+            firstRun.task(":generatePortableVersionCatalog")?.outcome
+        )
+        assertTrue(firstRun.output.contains("Configuration cache entry stored."))
+
+        val secondRun = runner.build()
+        assertEquals(
+            TaskOutcome.UP_TO_DATE,
+            secondRun.task(":generatePortableVersionCatalog")?.outcome
+        )
+        assertTrue(secondRun.output.contains("Configuration cache entry reused."))
 
         // 5. Check files
         val generatedDir = projectDir.resolve("build/generated/sources")
         assertTrue(generatedDir.exists())
-        assertTrue(generatedDir.resolve("com/example/catalog/VersionsCatalog.kt").exists())
+        val generatedCatalog = generatedDir.resolve("com/example/catalog/VersionsCatalog.kt")
+        assertTrue(generatedCatalog.exists())
+        assertTrue(generatedCatalog.readText().contains("@version v1.2.3"))
+
+        // 6. Change a declared task input and verify the catalog is regenerated
+        writeBuildFile(projectVersion = "2.0.0")
+
+        val thirdRun = runner.build()
+        assertEquals(
+            TaskOutcome.SUCCESS,
+            thirdRun.task(":generatePortableVersionCatalog")?.outcome
+        )
+        assertTrue(generatedCatalog.readText().contains("@version v2.0.0"))
     }
 
-    private fun writeBuildFile() {
+    private fun writeBuildFile(projectVersion: String = "1.2.3") {
         val buildFile = projectDir.resolve("build.gradle.kts")
         buildFile.writeText(
             """
@@ -80,6 +109,8 @@ class PortableVersionCatalogGeneratorPluginTest {
                 tomlFiles.setFrom("${projectDir.absolutePath}/${versionsFileName}")
                 outputDir.set(file("build/generated/sources"))
             }
+
+            version = "$projectVersion"
             """.trimIndent()
         )
     }

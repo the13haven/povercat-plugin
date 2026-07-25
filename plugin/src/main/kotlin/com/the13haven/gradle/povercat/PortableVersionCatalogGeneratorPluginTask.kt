@@ -46,6 +46,9 @@ abstract class PortableVersionCatalogGeneratorPluginTask : DefaultTask() {
     @get:Input
     abstract val catalogPackage: Property<String>
 
+    @get:Input
+    abstract val projectVersion: Property<String>
+
     @get:SkipWhenEmpty
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
@@ -70,8 +73,7 @@ abstract class PortableVersionCatalogGeneratorPluginTask : DefaultTask() {
         }
 
         val filteredTomlFiles = tomlFiles.files
-            .map { filePath ->
-                val tomlFile = project.file(filePath)
+            .map { tomlFile ->
                 if (!tomlFile.exists()) {
                     throw IllegalStateException("Version catalog file not found: ${tomlFile.absolutePath}")
                 }
@@ -88,7 +90,7 @@ abstract class PortableVersionCatalogGeneratorPluginTask : DefaultTask() {
                 tomlFile,
                 catalogPackage.get(),
                 className,
-                project.version.toString()
+                projectVersion.get()
             )
 
             if (classContent.isNotBlank()) {
@@ -99,11 +101,15 @@ abstract class PortableVersionCatalogGeneratorPluginTask : DefaultTask() {
     }
 
     companion object {
-        fun Project.generatePortableVersionCatalogTask(extension: PortableVersionCatalogGeneratorPluginExtension): TaskProvider<PortableVersionCatalogGeneratorPluginTask> =
-            tasks.register<PortableVersionCatalogGeneratorPluginTask>("generatePortableVersionCatalog") {
+        fun Project.generatePortableVersionCatalogTask(extension: PortableVersionCatalogGeneratorPluginExtension): TaskProvider<PortableVersionCatalogGeneratorPluginTask> {
+            val projectVersionProvider = provider { version.toString() }
+
+            return tasks.register<PortableVersionCatalogGeneratorPluginTask>("generatePortableVersionCatalog") {
                 catalogPackage.set(extension.catalogPackage)
+                projectVersion.set(projectVersionProvider)
                 tomlFiles.setFrom(extension.tomlFiles)
                 outputDir.set(extension.outputDir)
             }
+        }
     }
 }
