@@ -42,10 +42,14 @@ import javax.lang.model.SourceVersion
 /**
  * PoVerCat Plugin Task.
  *
+ * The current year is intentionally not a task input. Generated sources should receive a
+ * fresh year only when another declared input changes; otherwise this task remains UP-TO-DATE.
+ * For the same reason, its outputs must not be restored from a build cache across calendar years.
+ *
  * @author ssidorov@the13haven.com
  */
 @DisableCachingByDefault(
-    because = "Generated source includes the current year, which is not declared as a task input"
+    because = "Generated source intentionally captures the execution year only when other inputs change"
 )
 abstract class PortableVersionCatalogGeneratorPluginTask : DefaultTask() {
 
