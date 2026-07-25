@@ -17,15 +17,33 @@
 
 <span style="color:orange;font-weight:900;">POVERCAT</span> is an abbreviation of the words <span style="color:orange;font-weight:900;">PO</span>rtable <span style="color:orange;font-weight:900;">VER</span>sion <span style="color:orange;font-weight:900;">CAT</span>alog
 
-Povercat is a Gradle plugin that generates a kotlin class from a TOML based version catalog and distribute it as a dependency.
+PoVerCat is a Gradle plugin that generates Kotlin classes from TOML-based version
+catalogs in a catalog producer project. The producer publishes the compiled classes
+as a regular dependency, which can then be used from both Kotlin and Java projects.
+
+The catalog producer must apply the Gradle `kotlin-dsl` plugin or the Kotlin JVM
+plugin because PoVerCat generates Kotlin source code. Consumer projects do not need
+to use Kotlin: they consume the already compiled artifact.
 
 ## Features
 
 * Automatic class generation from multiple TOML files
 * Portable and reusable version catalog class
-* Compatible with Java and Kotlin
+* Generated catalog artifacts are usable from both Kotlin and Java
 * Seamless integration with Gradle projects
 * Minimal settings for default case
+
+## Compatibility model
+
+PoVerCat distinguishes between the project that generates the catalog and the
+projects that consume it:
+
+* **Catalog producer** — a Gradle project that applies `kotlin-dsl` or
+  `org.jetbrains.kotlin.jvm`. PoVerCat generates Kotlin source code, adds it to the
+  main source set, and runs generation before `compileKotlin`.
+* **Catalog consumer** — a Kotlin or Java project that declares a dependency on the
+  artifact published by the producer. Consumers use compiled classes and therefore
+  do not need to apply PoVerCat or the Kotlin plugin.
 
 ## Plugin usage
 
@@ -49,13 +67,17 @@ Then, apply the plugin in your `build.gradle.kts` file:
 
 ```kotlin
 plugins {
-    id("com.l13.plugin.povercat") version "0.1.0"
+    `kotlin-dsl`
+    id("com.the13haven.povercat") version "0.1.0"
 }
 ```
 
+The Kotlin plugin and PoVerCat may be declared in either order. PoVerCat waits for a
+supported Kotlin plugin before configuring source sets and compilation tasks.
+
 ### Configure the plugin (Optional)
 
-By default, the plugin looks for the `libs.versions.toml` file in the gradle directory, which is the standard location for the version catalog. However, you can override this behavior or specify multiple sources—each of which will be transformed into a separate Java class.
+By default, the plugin looks for the `libs.versions.toml` file in the gradle directory, which is the standard location for the version catalog. However, you can override this behavior or specify multiple sources—each of which will be transformed into a separate Kotlin class.
 
 The default package for the generated classes is `org.gradle.version.catalog`. This too can be customized via plugin configuration.
 
@@ -91,7 +113,7 @@ dependencies {
 }
 ```
 
-Once the dependency is in place, you can use the version values directly in your code:
+Once the dependency is in place, Kotlin consumers can use the version values directly:
 
 ```kotlin
 fun configureExtensions(extensions: ExtensionContainer, project: Project) {
@@ -99,6 +121,12 @@ fun configureExtensions(extensions: ExtensionContainer, project: Project) {
         toolVersion = LibsVersions.Libraries.jacocoTool.version!!
     }
 }
+```
+
+The same compiled catalog can be used from Java:
+
+```java
+String jacocoVersion = LibsVersions.Libraries.getJacocoTool().getVersion();
 ```
 
 This approach allows you to build convention plugins with preconfigured tools using centralized version definitions that are consistent across your project ecosystem.
