@@ -18,6 +18,7 @@ package com.the13haven.gradle.povercat
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 
 /**
@@ -34,6 +35,13 @@ open class PortableVersionCatalogGeneratorPluginExtension(project: Project) {
     val tomlFiles: ConfigurableFileCollection = project.objects
         .fileCollection()
         .convention("gradle/libs.versions.toml")
+
+    /**
+     * Explicit generated class names keyed by a project-relative or absolute TOML file path.
+     */
+    val catalogClassNames: MapProperty<String, String> = project.objects
+        .mapProperty(String::class.java, String::class.java)
+        .convention(emptyMap())
 
     val outputDir: DirectoryProperty = project.objects
         .directoryProperty()
