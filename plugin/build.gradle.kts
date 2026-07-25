@@ -5,6 +5,17 @@ import pl.allegro.tech.build.axion.release.domain.preRelease
 group = "com.the13haven"
 project.version = scmVersion.version
 
+buildscript {
+    dependencies {
+        constraints {
+            classpath(libs.bouncycastle.bcpg)
+            classpath(libs.bouncycastle.bcprov)
+            classpath(libs.bouncycastle.bcutil)
+            classpath(libs.bouncycastle.bcpkix)
+        }
+    }
+}
+
 plugins {
     `kotlin-dsl`
     alias(libs.plugins.gradle.plugin.publish)

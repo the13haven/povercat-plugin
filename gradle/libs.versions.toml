@@ -1,6 +1,7 @@
 [versions]
 
 tomlj = "1.1.1"
+bouncycastle = "1.84"
 
 axion-release-plugin = "1.21.2"
 
@@ -16,6 +17,11 @@ gradle-plugin-publish = "2.1.1"
 [libraries]
 
 tomlj = { group = "org.tomlj", name = "tomlj", version.ref = "tomlj" }
+
+bouncycastle-bcpg = { module = "org.bouncycastle:bcpg-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-bcutil = { module = "org.bouncycastle:bcutil-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
 
 jacoco = { group = "org.jacoco", name = "org.jacoco.core", version.ref = "jacoco" }
 
