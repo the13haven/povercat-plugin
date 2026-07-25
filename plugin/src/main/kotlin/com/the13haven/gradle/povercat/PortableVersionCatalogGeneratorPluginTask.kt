@@ -23,10 +23,13 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.SkipWhenEmpty
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.register
+import org.gradle.work.DisableCachingByDefault
 import java.io.File
 import java.util.Locale
 
@@ -35,6 +38,9 @@ import java.util.Locale
  *
  * @author ssidorov@the13haven.com
  */
+@DisableCachingByDefault(
+    because = "The task does not remove stale generated sources when an input catalog is removed"
+)
 abstract class PortableVersionCatalogGeneratorPluginTask : DefaultTask() {
 
     @get:Input
@@ -42,6 +48,7 @@ abstract class PortableVersionCatalogGeneratorPluginTask : DefaultTask() {
 
     @get:SkipWhenEmpty
     @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val tomlFiles: ConfigurableFileCollection
 
     @get:OutputDirectory
