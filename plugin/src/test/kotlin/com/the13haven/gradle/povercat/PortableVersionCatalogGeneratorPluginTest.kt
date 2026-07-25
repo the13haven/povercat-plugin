@@ -70,6 +70,10 @@ class PortableVersionCatalogGeneratorPluginTest {
         assertTrue(firstRun.output.contains("Configuration cache entry stored."))
 
         val secondRun = runner.build()
+        assertEquals(
+            TaskOutcome.UP_TO_DATE,
+            secondRun.task(":generatePortableVersionCatalog")?.outcome
+        )
         assertTrue(secondRun.output.contains("Configuration cache entry reused."))
 
         // 5. Check files
@@ -78,9 +82,19 @@ class PortableVersionCatalogGeneratorPluginTest {
         val generatedCatalog = generatedDir.resolve("com/example/catalog/VersionsCatalog.kt")
         assertTrue(generatedCatalog.exists())
         assertTrue(generatedCatalog.readText().contains("@version v1.2.3"))
+
+        // 6. Change a declared task input and verify the catalog is regenerated
+        writeBuildFile(projectVersion = "2.0.0")
+
+        val thirdRun = runner.build()
+        assertEquals(
+            TaskOutcome.SUCCESS,
+            thirdRun.task(":generatePortableVersionCatalog")?.outcome
+        )
+        assertTrue(generatedCatalog.readText().contains("@version v2.0.0"))
     }
 
-    private fun writeBuildFile() {
+    private fun writeBuildFile(projectVersion: String = "1.2.3") {
         val buildFile = projectDir.resolve("build.gradle.kts")
         buildFile.writeText(
             """
@@ -96,7 +110,7 @@ class PortableVersionCatalogGeneratorPluginTest {
                 outputDir.set(file("build/generated/sources"))
             }
 
-            version = "1.2.3"
+            version = "$projectVersion"
             """.trimIndent()
         )
     }
