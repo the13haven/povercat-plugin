@@ -77,7 +77,25 @@ supported Kotlin plugin before configuring source sets and compilation tasks.
 
 ### Configure the plugin (Optional)
 
-By default, the plugin looks for the `libs.versions.toml` file in the gradle directory, which is the standard location for the version catalog. However, you can override this behavior or specify multiple sources—each of which will be transformed into a separate Kotlin class.
+By default, the plugin looks for `gradle/libs.versions.toml`, the standard version
+catalog location. If the default file, or any explicitly configured catalog file,
+does not exist, generation fails with an error. You can override the default or
+specify multiple sources—each of which will be transformed into a separate Kotlin
+class.
+
+To intentionally disable generation, explicitly configure an empty file collection:
+
+```kotlin
+portableVersionCatalog {
+    tomlFiles.setFrom(emptyList<Any>())
+}
+```
+
+With an empty collection, the generation task is skipped when there are no outputs
+to clean up. PoVerCat tracks the files it owns in
+`build/generated/sources/.povercat-generated-files` and removes obsolete generated
+classes when a configured catalog is removed or renamed. Do not edit this manifest
+manually.
 
 The default package for the generated classes is `org.gradle.version.catalog`. This too can be customized via plugin configuration.
 

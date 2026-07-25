@@ -18,6 +18,7 @@ package com.the13haven.gradle.povercat
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -33,7 +34,7 @@ class PortableVersionCatalogGeneratorPluginTest {
     @TempDir
     lateinit var projectDir: File
 
-    val versionsFileName = "versions.toml"
+    private val versionsFileName = "versions.toml"
 
     @Test
     fun `generate catalog with reusable configuration cache`() {
@@ -118,7 +119,112 @@ class PortableVersionCatalogGeneratorPluginTest {
         )
     }
 
-    private fun writeBuildFile(projectVersion: String = "1.2.3") {
+    @Test
+    fun `skip generation when catalogs are explicitly empty`() {
+        writeBuildFile(tomlFiles = emptyList())
+
+        val result = runner("generatePortableVersionCatalog").build()
+
+        assertEquals(
+            TaskOutcome.SKIPPED,
+            result.task(":generatePortableVersionCatalog")?.outcome
+        )
+        assertFalse(projectDir.resolve("build/generated/sources").exists())
+    }
+
+    @Test
+    fun `fail when default catalog does not exist`() {
+        writeBuildFile(tomlFiles = null)
+
+        val result = runner("generatePortableVersionCatalog").buildAndFail()
+
+        assertTrue(result.output.contains("gradle/libs.versions.toml"))
+        assertTrue(result.output.contains("Version catalog file not found"))
+    }
+
+    @Test
+    fun `fail when configured catalog does not exist`() {
+        val missingCatalog = projectDir.resolve("catalog/missing.toml")
+        writeBuildFile(tomlFiles = listOf(missingCatalog))
+
+        val result = runner("generatePortableVersionCatalog").buildAndFail()
+
+        assertTrue(result.output.contains(missingCatalog.absolutePath))
+        assertTrue(result.output.contains("Version catalog file not found"))
+    }
+
+    @Test
+    fun `remove stale generated sources when catalogs change`() {
+        val firstCatalog = projectDir.resolve("first.toml")
+        val secondCatalog = projectDir.resolve("second.toml")
+        writeMinimalTomlFile(firstCatalog)
+        writeMinimalTomlFile(secondCatalog)
+        writeBuildFile(tomlFiles = listOf(firstCatalog, secondCatalog))
+
+        val generatedDir = projectDir.resolve("build/generated/sources")
+        val firstSource = generatedDir.resolve("com/example/catalog/FirstCatalog.kt")
+        val secondSource = generatedDir.resolve("com/example/catalog/SecondCatalog.kt")
+        val manifest = generatedDir.resolve(
+            PortableVersionCatalogGeneratorPluginTask.GENERATED_FILES_MANIFEST
+        )
+
+        assertEquals(
+            TaskOutcome.SUCCESS,
+            runner("generatePortableVersionCatalog")
+                .build()
+                .task(":generatePortableVersionCatalog")
+                ?.outcome
+        )
+        assertTrue(firstSource.exists())
+        assertTrue(secondSource.exists())
+        assertTrue(manifest.exists())
+
+        writeBuildFile(tomlFiles = listOf(firstCatalog))
+        runner("generatePortableVersionCatalog").build()
+        assertTrue(firstSource.exists())
+        assertFalse(secondSource.exists())
+
+        val renamedCatalog = projectDir.resolve("renamed.toml")
+        assertTrue(firstCatalog.renameTo(renamedCatalog))
+        writeBuildFile(tomlFiles = listOf(renamedCatalog))
+        runner("generatePortableVersionCatalog").build()
+
+        val renamedSource = generatedDir.resolve("com/example/catalog/RenamedCatalog.kt")
+        assertFalse(firstSource.exists())
+        assertTrue(renamedSource.exists())
+
+        writeBuildFile(tomlFiles = emptyList())
+        assertEquals(
+            TaskOutcome.SUCCESS,
+            runner("generatePortableVersionCatalog")
+                .build()
+                .task(":generatePortableVersionCatalog")
+                ?.outcome
+        )
+        assertFalse(renamedSource.exists())
+        assertFalse(manifest.exists())
+
+        assertEquals(
+            TaskOutcome.SKIPPED,
+            runner("generatePortableVersionCatalog")
+                .build()
+                .task(":generatePortableVersionCatalog")
+                ?.outcome
+        )
+    }
+
+    private fun writeBuildFile(
+        projectVersion: String = "1.2.3",
+        tomlFiles: List<File>? = listOf(projectDir.resolve(versionsFileName))
+    ) {
+        val tomlFilesConfiguration = when {
+            tomlFiles == null -> ""
+            tomlFiles.isEmpty() -> "tomlFiles.setFrom(emptyList<Any>())"
+            else -> tomlFiles.joinToString(
+                prefix = "tomlFiles.setFrom(listOf(",
+                postfix = "))"
+            ) { "\"${it.absolutePath}\"" }
+        }
         val buildFile = projectDir.resolve("build.gradle.kts")
         buildFile.writeText(
             """
@@ -134,7 +240,7 @@ class PortableVersionCatalogGeneratorPluginTest {
 
             portableVersionCatalog {
                 catalogPackage.set("com.example.catalog")
-                tomlFiles.setFrom("${projectDir.absolutePath}/${versionsFileName}")
+                $tomlFilesConfiguration
                 outputDir.set(file("build/generated/sources"))
             }
 
@@ -142,6 +248,12 @@ class PortableVersionCatalogGeneratorPluginTest {
             """.trimIndent()
         )
     }
+
+    private fun runner(vararg arguments: String): GradleRunner =
+        GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withPluginClasspath()
+            .withArguments(*arguments)
 
     private fun writeTomlFile() {
         val tomlFile = projectDir.resolve(versionsFileName)
@@ -173,6 +285,15 @@ class PortableVersionCatalogGeneratorPluginTest {
             plugin-version-ref = { id = "com.test.plugin-version-ref", version.ref = "version-simple" }
             plugin-version-as-object = { id = "com.test.version-as-object", version = { prefer = "1.0.0", require = "1.0.1", strictly = "1.1.1", reject = ["0.0.1", "0.0.2"] } }
             plugin-simple-id.id = "com.text.plugin-with-id"
+            """.trimIndent()
+        )
+    }
+
+    private fun writeMinimalTomlFile(file: File) {
+        file.writeText(
+            """
+            [versions]
+            kotlin = "2.3.0"
             """.trimIndent()
         )
     }
