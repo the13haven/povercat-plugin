@@ -105,6 +105,16 @@ when PoVerCat finds invalid TOML, malformed library or version declarations,
 unknown `version.ref` values, or unknown library aliases in a bundle. Libraries
 and plugins without a version remain supported.
 
+Aliases follow Gradle normalization rules: `-`, `_`, and `.` are equivalent
+separators for `version.ref` and bundle references. Generated accessors remain
+flat camel-case names, so `foo-bar`, `foo_bar`, and `foo.bar` all map to
+`fooBar`; a version alias therefore always produces one property in the
+`Versions` object rather than nested accessors. To keep the generated API
+deterministic, PoVerCat rejects declarations that become duplicates after
+normalization, distinct aliases that generate the same accessor, invalid alias
+characters, and reserved Gradle, Java, or Kotlin names. `*` is not a Gradle
+alias separator and is rejected rather than normalized.
+
 The default package for the generated classes is `org.gradle.version.catalog`. This too can be customized via plugin configuration.
 
 By default, the generated source files are placed under `build/generated/sources`. You can also override this output directory if needed.

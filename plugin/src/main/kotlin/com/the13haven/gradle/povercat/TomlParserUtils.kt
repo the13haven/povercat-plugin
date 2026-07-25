@@ -17,7 +17,6 @@ package com.the13haven.gradle.povercat
 
 import org.tomlj.TomlArray
 import org.tomlj.TomlTable
-import java.util.Locale
 
 
 /**
@@ -52,20 +51,8 @@ class TomlParserUtils {
         val REJECT_ALL_VERSION = TomlVersion(EMPTY_STRING, EMPTY_STRING, EMPTY_STRING, listOf("+"))
 
         @JvmStatic
-        fun toCamelCase(value: String): String {
-            return value.split("-", "_", ".")
-                .joinToString(EMPTY_STRING) { part ->
-                    part.replaceFirstChar {
-                        if (it.isLowerCase())
-                            it.titlecase(Locale.getDefault())
-                        else
-                            it.toString()
-                    }
-                }
-                .replaceFirstChar {
-                    it.lowercase(Locale.getDefault())
-                }
-        }
+        fun toCamelCase(value: String): String =
+            CatalogAlias.toAccessorName(value)
 
         @JvmStatic
         fun parseVersion(versionValue: Any): TomlVersion {
@@ -151,7 +138,10 @@ class TomlParserUtils {
                         parseVersion(versionPart)
                     } else {
                         // case 3: ref to version
-                        versions.getOrDefault(refVersionKey, EMPTY_VERSION)
+                        versions.getOrDefault(
+                            CatalogAlias.normalize(refVersionKey),
+                            EMPTY_VERSION
+                        )
                     }
                 } else {
                     // case 4: simple version

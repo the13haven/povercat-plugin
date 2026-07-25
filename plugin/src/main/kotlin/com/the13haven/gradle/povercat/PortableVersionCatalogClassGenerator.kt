@@ -89,7 +89,7 @@ class PortableVersionCatalogClassGenerator {
                         val parsedVersion = TomlParserUtils.parseVersion(value)
 
                         if (parsedVersion.isNotEmpty()) {
-                            parsedVersions[key] = parsedVersion
+                            parsedVersions[CatalogAlias.normalize(key)] = parsedVersion
 
                             appendLine()
                             appendLine("        @JvmStatic")

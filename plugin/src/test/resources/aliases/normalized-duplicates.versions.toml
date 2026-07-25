@@ -1,0 +1,15 @@
+[versions]
+foo-bar = "1.2.3"
+foo_bar = "2.0.0"
+
+[libraries]
+library-alias = "com.example:first:1.0"
+library_alias = "com.example:second:2.0"
+
+[bundles]
+bundle-alias = ["library-alias"]
+bundle_alias = ["library_alias"]
+
+[plugins]
+plugin-alias = { id = "com.example.first", version = "1.0" }
+plugin_alias = { id = "com.example.second", version = "2.0" }

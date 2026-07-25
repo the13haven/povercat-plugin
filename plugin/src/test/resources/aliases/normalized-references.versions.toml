@@ -1,0 +1,11 @@
+[versions]
+foo-bar = "1.2.3"
+
+[libraries]
+library-alias = { module = "com.example:library", version.ref = "foo_bar" }
+
+[bundles]
+bundle-alias = ["library.alias"]
+
+[plugins]
+plugin-alias = { id = "com.example.plugin", version.ref = "foo.bar" }
