@@ -49,7 +49,7 @@ kotlin {
 jacoco {
     toolVersion = libs.jacoco.get().version!!
 
-    reportsDirectory = layout.buildDirectory.dir("reposts/coverage")
+    reportsDirectory = layout.buildDirectory.dir("reports/coverage")
 }
 
 gradlePlugin {
@@ -163,7 +163,8 @@ tasks.jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
-                counter
+                counter = "LINE"
+                value = "COVEREDRATIO"
                 minimum = BigDecimal.valueOf(0.9)
             }
         }

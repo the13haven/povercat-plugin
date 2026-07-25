@@ -49,7 +49,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: the13haven/povercat-plugin
-          files: build/reports/coverage/coverage.xml
+          files: plugin/build/reports/coverage/coverage.xml
           fail_ci_if_error: true
           verbose: true
 
