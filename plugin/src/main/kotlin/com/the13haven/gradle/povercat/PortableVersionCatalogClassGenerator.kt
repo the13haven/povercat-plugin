@@ -130,8 +130,8 @@ class PortableVersionCatalogClassGenerator {
                             )
                             appendLine(
                                 "            CatalogLibrary(" +
-                                        "\"${parsedLibrary.group}\", " +
-                                        "\"${parsedLibrary.name}\", " +
+                                        "${KotlinSourceEscaping.stringLiteral(parsedLibrary.group)}, " +
+                                        "${KotlinSourceEscaping.stringLiteral(parsedLibrary.name)}, " +
                                         "${parsedLibrary.version.render()}" +
                                         ")"
                             )
@@ -206,7 +206,8 @@ class PortableVersionCatalogClassGenerator {
                             appendLine(
                                 "        val ${TomlParserUtils.toCamelCase(key)}: PluginDependency = " +
                                         "CatalogGradleTypeFactory.plugin(" +
-                                        "\"${plugin.id}\", ${plugin.version.render()}" +
+                                        "${KotlinSourceEscaping.stringLiteral(plugin.id)}, " +
+                                        "${plugin.version.render()}" +
                                         ")"
                             )
                         }
@@ -286,9 +287,9 @@ class PortableVersionCatalogClassGenerator {
 
         private fun TomlParserUtils.TomlVersion.render(): String =
             "CatalogVersion(" +
-                    "requiredVersion = \"$requiredVersion\", " +
-                    "strictVersion = \"$strictVersion\", " +
-                    "preferredVersion = \"$preferredVersion\", " +
+                    "requiredVersion = ${KotlinSourceEscaping.stringLiteral(requiredVersion)}, " +
+                    "strictVersion = ${KotlinSourceEscaping.stringLiteral(strictVersion)}, " +
+                    "preferredVersion = ${KotlinSourceEscaping.stringLiteral(preferredVersion)}, " +
                     "rejectedVersions = ${rejectedVersions.renderStringList()}" +
                     ")"
 
@@ -296,7 +297,9 @@ class PortableVersionCatalogClassGenerator {
             if (isEmpty()) {
                 "emptyList()"
             } else {
-                joinToString(prefix = "listOf(", postfix = ")") { "\"$it\"" }
+                joinToString(prefix = "listOf(", postfix = ")") {
+                    KotlinSourceEscaping.stringLiteral(it)
+                }
             }
 
         private fun appendCopyright(stringBuilder: StringBuilder) {
@@ -347,7 +350,9 @@ class PortableVersionCatalogClassGenerator {
                 appendLine(" * project and rebuild it.</p>")
                 appendLine(" *")
                 appendLine(" * @author PoVerCat plugin")
-                appendLine(" * @version v${projectVersion}")
+                appendLine(
+                    " * @version v${KotlinSourceEscaping.kDocText(projectVersion)}"
+                )
                 appendLine(" */")
             }
         }
