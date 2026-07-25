@@ -99,6 +99,48 @@ class PortableVersionCatalogGeneratorPluginTest {
     }
 
     @Test
+    fun `generated catalog exposes public Gradle types and preserves rich versions`() {
+        writeBuildFile()
+        writeTomlFile()
+
+        val producerResult = runner("jar").build()
+        assertEquals(TaskOutcome.SUCCESS, producerResult.task(":jar")?.outcome)
+
+        val generatedCatalog = projectDir.resolve(
+            "build/generated/sources/com/example/catalog/VersionsCatalog.kt"
+        ).readText()
+        assertTrue(
+            generatedCatalog.contains(
+                "val libWithVersionAsObject: MinimalExternalModuleDependency"
+            )
+        )
+        assertTrue(
+            generatedCatalog.contains(
+                "fun testBundleSimple(objectFactory: ObjectFactory): " +
+                    "Provider<ExternalModuleDependencyBundle>"
+            )
+        )
+        assertTrue(generatedCatalog.contains("val pluginVersionAsObject: PluginDependency"))
+        assertTrue(generatedCatalog.contains("val versionAsObject: VersionConstraint"))
+
+        val producerJar = projectDir.resolve("build/libs")
+            .listFiles { file -> file.extension == "jar" }
+            ?.single()
+            ?: error("Expected exactly one producer JAR")
+        val consumerDir = projectDir.resolve("consumer").apply { mkdirs() }
+        writeConsumerBuild(consumerDir, producerJar)
+        writeJavaConsumer(consumerDir)
+
+        val consumerResult = GradleRunner.create()
+            .withProjectDir(consumerDir)
+            .withArguments("compileJava", "verifyCatalog")
+            .build()
+
+        assertEquals(TaskOutcome.SUCCESS, consumerResult.task(":compileJava")?.outcome)
+        assertEquals(TaskOutcome.SUCCESS, consumerResult.task(":verifyCatalog")?.outcome)
+    }
+
+    @Test
     fun `fail with clear message when producer has no supported Kotlin plugin`() {
         projectDir.resolve("build.gradle.kts").writeText(
             """
@@ -365,6 +407,122 @@ class PortableVersionCatalogGeneratorPluginTest {
             plugin-version-ref = { id = "com.test.plugin-version-ref", version.ref = "version-simple" }
             plugin-version-as-object = { id = "com.test.version-as-object", version = { prefer = "1.0.0", require = "1.0.1", strictly = "1.1.1", reject = ["0.0.1", "0.0.2"] } }
             plugin-simple-id.id = "com.text.plugin-with-id"
+            """.trimIndent()
+        )
+    }
+
+    private fun writeConsumerBuild(consumerDir: File, producerJar: File) {
+        consumerDir.resolve("settings.gradle.kts").writeText(
+            """rootProject.name = "catalog-consumer""""
+        )
+        consumerDir.resolve("build.gradle.kts").writeText(
+            """
+            import com.example.catalog.Versions
+            import org.gradle.api.artifacts.ExternalModuleDependencyBundle
+            import org.gradle.api.artifacts.MinimalExternalModuleDependency
+            import org.gradle.api.artifacts.VersionConstraint
+            import org.gradle.api.provider.Provider
+            import org.gradle.plugin.use.PluginDependency
+
+            buildscript {
+                dependencies {
+                    classpath(files("${producerJar.invariantSeparatorsPath}"))
+                }
+            }
+
+            plugins {
+                java
+            }
+
+            dependencies {
+                implementation(gradleApi())
+                implementation(files("${producerJar.invariantSeparatorsPath}"))
+            }
+
+            val richVersion: VersionConstraint = Versions.Versions.versionAsObject
+            val richLibrary: MinimalExternalModuleDependency =
+                Versions.Libraries.libWithVersionAsObject
+            val richPlugin: PluginDependency = Versions.Plugins.pluginVersionAsObject
+            val bundle: Provider<ExternalModuleDependencyBundle> =
+                Versions.Bundles.testBundleSimple(objects)
+
+            val catalogVerification = configurations.create("catalogVerification") {
+                isCanBeResolved = false
+                isCanBeConsumed = false
+            }
+            dependencies.add(catalogVerification.name, richLibrary)
+            dependencies.addProvider(catalogVerification.name, bundle)
+
+            tasks.register("verifyCatalog") {
+                doLast {
+                    check(richVersion.requiredVersion == "1.1.1")
+                    check(richVersion.strictVersion == "1.1.1")
+                    check(richVersion.preferredVersion == "1.0.0")
+                    check(richVersion.rejectedVersions == listOf("0.0.1", "0.0.2"))
+                    check(Versions.Versions.versionSimple.requiredVersion == "1.2.3")
+                    check(Versions.Versions.versionRejectAll.rejectedVersions == listOf("+"))
+
+                    check(richLibrary.group == "lib.test.version.as.object")
+                    check(richLibrary.name == "version-as-object")
+                    check(richLibrary.versionConstraint.requiredVersion == "1.1.1")
+                    check(richLibrary.versionConstraint.strictVersion == "1.1.1")
+                    check(richLibrary.versionConstraint.preferredVersion == "1.0.0")
+                    check(
+                        richLibrary.versionConstraint.rejectedVersions ==
+                            listOf("0.0.1", "0.0.2")
+                    )
+                    check(
+                        Versions.Libraries.libWithVersionRef
+                            .versionConstraint
+                            .requiredVersion == "1.2.3"
+                    )
+
+                    check(richPlugin.pluginId == "com.test.version-as-object")
+                    check(richPlugin.version.requiredVersion == "1.1.1")
+                    check(richPlugin.version.strictVersion == "1.1.1")
+                    check(richPlugin.version.preferredVersion == "1.0.0")
+                    check(richPlugin.version.rejectedVersions == listOf("0.0.1", "0.0.2"))
+                    check(Versions.Plugins.pluginVersionRef.version.requiredVersion == "1.2.3")
+
+                    check(bundle.get().size == 2)
+                }
+            }
+            """.trimIndent()
+        )
+    }
+
+    private fun writeJavaConsumer(consumerDir: File) {
+        val javaSource = consumerDir.resolve("src/main/java/JavaCatalogUsage.java")
+        javaSource.parentFile.mkdirs()
+        javaSource.writeText(
+            """
+            import com.example.catalog.Versions;
+            import org.gradle.api.artifacts.ExternalModuleDependencyBundle;
+            import org.gradle.api.artifacts.MinimalExternalModuleDependency;
+            import org.gradle.api.artifacts.VersionConstraint;
+            import org.gradle.api.model.ObjectFactory;
+            import org.gradle.api.provider.Provider;
+            import org.gradle.plugin.use.PluginDependency;
+
+            public final class JavaCatalogUsage {
+                public static VersionConstraint version() {
+                    return Versions.Versions.getVersionAsObject();
+                }
+
+                public static MinimalExternalModuleDependency library() {
+                    return Versions.Libraries.getLibWithVersionAsObject();
+                }
+
+                public static Provider<ExternalModuleDependencyBundle> bundle(
+                    ObjectFactory objectFactory
+                ) {
+                    return Versions.Bundles.testBundleSimple(objectFactory);
+                }
+
+                public static PluginDependency plugin() {
+                    return Versions.Plugins.getPluginVersionAsObject();
+                }
+            }
             """.trimIndent()
         )
     }
