@@ -1,0 +1,9 @@
+[versions]
+valid-version = "1.0"
+
+[libraries]
+valid-library = "com.example:valid:1.0"
+invalid-version-reference = { module = "com.example:invalid", version.ref = "valid*version" }
+
+[bundles]
+invalid-bundle-reference = ["valid*library"]

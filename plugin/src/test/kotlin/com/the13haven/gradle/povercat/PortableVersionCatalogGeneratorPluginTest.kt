@@ -122,6 +122,11 @@ class PortableVersionCatalogGeneratorPluginTest {
         )
         assertTrue(generatedCatalog.contains("val pluginVersionAsObject: PluginDependency"))
         assertTrue(generatedCatalog.contains("val versionAsObject: VersionConstraint"))
+        assertTrue(
+            generatedCatalog.contains(
+                "val versionEscapedRich: VersionConstraint"
+            )
+        )
 
         val producerJar = projectDir.resolve("build/libs")
             .listFiles { file -> file.extension == "jar" }
@@ -211,6 +216,24 @@ class PortableVersionCatalogGeneratorPluginTest {
         assertTrue(result.output.contains(projectDir.resolve(versionsFileName).absolutePath))
         assertTrue(result.output.contains("[libraries].invalid-library"))
         assertTrue(result.output.contains("references unknown version alias 'missing'"))
+    }
+
+    @Test
+    fun `fail fast when aliases collide after Gradle normalization`() {
+        writeBuildFile()
+        copyVersionCatalogFixture(
+            "/aliases/normalized-duplicates.versions.toml"
+        )
+
+        val result = runner("generatePortableVersionCatalog").buildAndFail()
+
+        assertTrue(result.output.contains("Invalid version catalog"))
+        assertTrue(
+            result.output.contains(
+                "normalize to the same Gradle alias 'foo.bar'"
+            )
+        )
+        assertTrue(result.output.contains("Rename one alias"))
     }
 
     @Test
@@ -395,12 +418,14 @@ class PortableVersionCatalogGeneratorPluginTest {
             .withPluginClasspath()
             .withArguments(*arguments)
 
-    private fun copyVersionCatalogFixture() {
+    private fun copyVersionCatalogFixture(
+        resourcePath: String = "/libs.versions.toml"
+    ) {
         val tomlFile = projectDir.resolve(versionsFileName)
         val catalogResource = requireNotNull(
-            javaClass.getResourceAsStream("/libs.versions.toml")
+            javaClass.getResourceAsStream(resourcePath)
         ) {
-            "Test version catalog resource '/libs.versions.toml' was not found"
+            "Test version catalog resource '$resourcePath' was not found"
         }
 
         catalogResource.use { input ->

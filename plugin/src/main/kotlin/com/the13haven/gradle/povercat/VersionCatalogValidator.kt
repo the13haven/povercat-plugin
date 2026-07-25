@@ -45,10 +45,19 @@ internal object VersionCatalogValidator {
         val plugins = catalog.section("plugins", errors)
         val bundles = catalog.section("bundles", errors)
 
+        val versionAliases = versions
+            ?.validateAliases("versions", errors)
+            .orEmpty()
+        val libraryAliases = libraries
+            ?.validateAliases("libraries", errors)
+            .orEmpty()
+        plugins?.validateAliases("plugins", errors)
+        bundles?.validateAliases("bundles", errors)
+
         versions?.validateVersions(errors)
-        libraries?.validateLibraries(versions?.keySet().orEmpty(), errors)
-        plugins?.validatePlugins(versions?.keySet().orEmpty(), errors)
-        bundles?.validateBundles(libraries?.keySet().orEmpty(), errors)
+        libraries?.validateLibraries(versionAliases, errors)
+        plugins?.validatePlugins(versionAliases, errors)
+        bundles?.validateBundles(libraryAliases, errors)
 
         if (errors.isNotEmpty()) {
             throw invalidCatalog(
@@ -69,6 +78,92 @@ internal object VersionCatalogValidator {
                 errors += "[$sectionName] must be a TOML table."
                 null
             }
+        }
+
+    private fun TomlTable.validateAliases(
+        sectionName: String,
+        errors: MutableList<String>
+    ): Set<String> {
+        val aliases = keySet().sorted()
+        val validAliases = aliases.filter { alias ->
+            if (CatalogAlias.isValid(alias)) {
+                true
+            } else {
+                errors +=
+                    "${aliasLocation(sectionName, alias)} must match Gradle alias pattern " +
+                        "'[a-z][a-zA-Z0-9_.-]+'."
+                false
+            }
+        }
+
+        validAliases.forEach { alias ->
+            validateReservedAlias(sectionName, alias, errors)
+        }
+
+        validAliases
+            .groupBy(CatalogAlias::normalize)
+            .filterValues { matchingAliases -> matchingAliases.size > 1 }
+            .forEach { (normalizedAlias, matchingAliases) ->
+                errors +=
+                    "[$sectionName] aliases ${matchingAliases.renderAliases(this)} " +
+                        "normalize to the same Gradle alias '$normalizedAlias'. Rename one alias."
+            }
+
+        validAliases
+            .groupBy(CatalogAlias::toAccessorName)
+            .filterValues { matchingAliases ->
+                matchingAliases
+                    .map(CatalogAlias::normalize)
+                    .distinct()
+                    .size > 1
+            }
+            .forEach { (accessorName, matchingAliases) ->
+                errors +=
+                    "[$sectionName] aliases ${matchingAliases.renderAliases(this)} " +
+                        "generate the same accessor '$accessorName'. Rename one alias."
+            }
+
+        return validAliases
+            .map(CatalogAlias::normalize)
+            .toSet()
+    }
+
+    private fun TomlTable.validateReservedAlias(
+        sectionName: String,
+        alias: String,
+        errors: MutableList<String>
+    ) {
+        val normalizedAlias = CatalogAlias.normalize(alias)
+        val segments = normalizedAlias.split('.')
+        val location = aliasLocation(sectionName, alias)
+
+        when {
+            normalizedAlias in CatalogAlias.reservedAliasNames ->
+                errors += "$location uses a reserved Gradle alias name '$normalizedAlias'."
+
+            segments.any { segment -> segment in CatalogAlias.reservedJavaSegments } ->
+                errors += "$location contains reserved Java name 'class'."
+
+            sectionName == "libraries" &&
+                segments.first() in CatalogAlias.forbiddenLibraryPrefixes ->
+                errors +=
+                    "$location starts with reserved library prefix '${segments.first()}'."
+        }
+
+        val accessorName = CatalogAlias.toAccessorName(alias)
+        if (CatalogAlias.isReservedAccessor(accessorName)) {
+            errors +=
+                "$location generates reserved Kotlin accessor name '$accessorName'. " +
+                    "Rename the alias."
+        }
+    }
+
+    private fun TomlTable.aliasLocation(sectionName: String, alias: String): String =
+        "[$sectionName].$alias (${inputPositionOf(listOf(alias)).render()})"
+
+    private fun List<String>.renderAliases(table: TomlTable): String =
+        sorted().joinToString(separator = ", ") { alias ->
+            "'$alias' (${table.inputPositionOf(listOf(alias)).render()})"
         }
 
     private fun TomlTable.validateVersions(errors: MutableList<String>) {
@@ -158,7 +253,12 @@ internal object VersionCatalogValidator {
                     libraryAlias !is String ->
                         errors += "$location[$index] must be a library alias string."
 
-                    libraryAlias !in libraryAliases ->
+                    !CatalogAlias.isValid(libraryAlias) ->
+                        errors +=
+                            "$location[$index] must match Gradle alias pattern " +
+                                "'[a-z][a-zA-Z0-9_.-]+'."
+
+                    CatalogAlias.normalize(libraryAlias) !in libraryAliases ->
                         errors += "$location references unknown library alias '$libraryAlias'."
                 }
             }
@@ -187,7 +287,12 @@ internal object VersionCatalogValidator {
                         reference !is String || reference.isBlank() ->
                             errors += "$ownerLocation.version.ref must be a non-empty string."
 
-                        reference !in versionAliases ->
+                        !CatalogAlias.isValid(reference) ->
+                            errors +=
+                                "$ownerLocation.version.ref must match Gradle alias pattern " +
+                                    "'[a-z][a-zA-Z0-9_.-]+'."
+
+                        CatalogAlias.normalize(reference) !in versionAliases ->
                             errors +=
                                 "$ownerLocation references unknown version alias '$reference'."
                     }
@@ -276,7 +381,7 @@ internal object VersionCatalogValidator {
         action: (alias: String, value: Any, location: String) -> Unit
     ) {
         entrySet().forEach { (alias, value) ->
-            val position = inputPositionOf(alias)
+            val position = inputPositionOf(listOf(alias))
             action(alias, value, "[$sectionName].$alias (${position.render()})")
         }
     }

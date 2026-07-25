@@ -1,0 +1,15 @@
+[versions]
+someAlias = "1.2.3"
+some-alias = "2.0.0"
+
+[libraries]
+libraryAlias = "com.example:first:1.0"
+library-alias = "com.example:second:2.0"
+
+[bundles]
+bundleAlias = ["libraryAlias"]
+bundle-alias = ["library-alias"]
+
+[plugins]
+pluginAlias = { id = "com.example.first", version = "1.0" }
+plugin-alias = { id = "com.example.second", version = "2.0" }

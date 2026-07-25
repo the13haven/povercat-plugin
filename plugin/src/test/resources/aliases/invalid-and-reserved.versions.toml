@@ -1,0 +1,8 @@
+[versions]
+"foo*_bar" = "1.0"
+when = "2.0"
+extensions = "3.0"
+class = "4.0"
+
+[libraries]
+versions-dependency = "com.example:dependency:1.0"

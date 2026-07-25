@@ -155,10 +155,107 @@ class VersionCatalogValidatorTest {
         VersionCatalogValidator.validate(catalog, Toml.parse(catalog.toPath()))
     }
 
+    @Test
+    fun `allows Gradle-normalized version and bundle references`() {
+        val catalog = catalogResource("normalized-references.versions.toml")
+
+        VersionCatalogValidator.validate(catalog, Toml.parse(catalog.toPath()))
+    }
+
+    @Test
+    fun `rejects aliases that are duplicates after Gradle normalization`() {
+        val catalog = catalogResource("normalized-duplicates.versions.toml")
+
+        val exception = validateAndCapture(catalog)
+
+        listOf("versions", "libraries", "bundles", "plugins").forEach { section ->
+            assertTrue(
+                exception.message!!.contains(
+                    "[$section] aliases"
+                )
+            )
+        }
+        assertTrue(
+            exception.message!!.contains(
+                "normalize to the same Gradle alias 'foo.bar'"
+            )
+        )
+        assertTrue(exception.message!!.contains("Rename one alias"))
+    }
+
+    @Test
+    fun `rejects distinct aliases that generate the same flat accessor`() {
+        val catalog = catalogResource("accessor-collisions.versions.toml")
+
+        val exception = validateAndCapture(catalog)
+
+        assertTrue(
+            exception.message!!.contains(
+                "[versions] aliases 'some-alias'"
+            )
+        )
+        assertTrue(exception.message!!.contains("same accessor 'someAlias'"))
+        assertTrue(exception.message!!.contains("same accessor 'libraryAlias'"))
+        assertTrue(exception.message!!.contains("same accessor 'bundleAlias'"))
+        assertTrue(exception.message!!.contains("same accessor 'pluginAlias'"))
+    }
+
+    @Test
+    fun `rejects invalid and reserved aliases before source generation`() {
+        val catalog = catalogResource("invalid-and-reserved.versions.toml")
+
+        val exception = validateAndCapture(catalog)
+
+        assertTrue(exception.message!!.contains("[versions].foo*_bar"))
+        assertTrue(exception.message!!.contains("must match Gradle alias pattern"))
+        assertTrue(exception.message!!.contains("reserved Kotlin accessor name 'when'"))
+        assertTrue(exception.message!!.contains("reserved Gradle alias name 'extensions'"))
+        assertTrue(exception.message!!.contains("reserved Java name 'class'"))
+        assertTrue(exception.message!!.contains("reserved library prefix 'versions'"))
+    }
+
+    @Test
+    fun `rejects invalid aliases in version and bundle references`() {
+        val catalog = catalogResource("invalid-references.versions.toml")
+
+        val exception = validateAndCapture(catalog)
+
+        assertTrue(
+            exception.message!!.contains(
+                "[libraries].invalid-version-reference"
+            )
+        )
+        assertTrue(
+            exception.message!!.contains(
+                ".version.ref must match Gradle alias pattern"
+            )
+        )
+        assertTrue(
+            exception.message!!.contains(
+                "[bundles].invalid-bundle-reference"
+            )
+        )
+        assertTrue(exception.message!!.contains("[0] must match Gradle alias pattern"))
+    }
+
     private fun catalogFile(content: String): File =
         tempDir.resolve("libs.versions.toml").apply {
             writeText(content.trimIndent())
         }
+
+    private fun catalogResource(resourceName: String): File {
+        val catalog = tempDir.resolve(resourceName)
+        val resource = requireNotNull(
+            javaClass.getResourceAsStream("/aliases/$resourceName")
+        ) {
+            "Test version catalog resource '/aliases/$resourceName' was not found"
+        }
+
+        resource.use { input ->
+            catalog.outputStream().use(input::copyTo)
+        }
+        return catalog
+    }
 
     private fun validateAndCapture(catalog: File): GradleException =
         assertThrows {
