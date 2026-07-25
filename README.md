@@ -97,6 +97,14 @@ to clean up. PoVerCat tracks the files it owns in
 classes when a configured catalog is removed or renamed. Do not edit this manifest
 manually.
 
+PoVerCat validates every configured catalog before generating source code. This is
+necessary because custom files from `tomlFiles` are not necessarily imported by
+Gradle as settings-level version catalogs and therefore may not be validated by
+Gradle itself. Generation fails with the catalog path, entry, and source position
+when PoVerCat finds invalid TOML, malformed library or version declarations,
+unknown `version.ref` values, or unknown library aliases in a bundle. Libraries
+and plugins without a version remain supported.
+
 The default package for the generated classes is `org.gradle.version.catalog`. This too can be customized via plugin configuration.
 
 By default, the generated source files are placed under `build/generated/sources`. You can also override this output directory if needed.

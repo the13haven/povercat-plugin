@@ -196,6 +196,24 @@ class PortableVersionCatalogGeneratorPluginTest {
     }
 
     @Test
+    fun `fail fast when catalog contains an unknown version reference`() {
+        writeBuildFile()
+        projectDir.resolve(versionsFileName).writeText(
+            """
+            [libraries]
+            invalid-library = { module = "com.example:invalid", version.ref = "missing" }
+            """.trimIndent()
+        )
+
+        val result = runner("generatePortableVersionCatalog").buildAndFail()
+
+        assertTrue(result.output.contains("Invalid version catalog"))
+        assertTrue(result.output.contains(projectDir.resolve(versionsFileName).absolutePath))
+        assertTrue(result.output.contains("[libraries].invalid-library"))
+        assertTrue(result.output.contains("references unknown version alias 'missing'"))
+    }
+
+    @Test
     fun `fail on class name collision and allow resolving it with explicit names`() {
         val firstCatalog = projectDir.resolve("catalog/team-a/libs-main.toml")
         val secondCatalog = projectDir.resolve("catalog/team-b/libs_main.toml")
@@ -393,12 +411,11 @@ class PortableVersionCatalogGeneratorPluginTest {
             lib-simple-no-version.module = "com.mycompany:mylib"
             lib-module = { module = "com.mycompany:other", version = "1.4" }
             lib-with-version-ref = { group = "lib.test.version.ref", name = "version-ref", version.ref = "version-simple" }
-            lib-with-version-ref-not-found = { group = "lib.test.version.ref", name = "version-ref", version.ref = "version-unknown" }
             lib-with-version-as-object = { group = "lib.test.version.as.object", name = "version-as-object", version = { prefer = "1.0.0", require = "1.0.1", strictly = "1.1.1", reject = ["0.0.1", "0.0.2"] } }
 
             [bundles]
 
-            test-bundle = ["lib-module", "lib-with-version-ref", "lib-with-version-ref-not-found"]
+            test-bundle = ["lib-module", "lib-with-version-ref"]
             test-bundle-simple = ["lib-simple-with-version", "lib-with-version-as-object"]
 
             [plugins]
