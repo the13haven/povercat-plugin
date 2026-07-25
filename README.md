@@ -111,6 +111,39 @@ portableVersionCatalog {
 }
 ```
 
+#### Configure generated class names
+
+By default, each generated Kotlin class name is derived from its TOML file name.
+For example, `libs-main.versions.toml` produces `LibsMainVersions`.
+
+Use `catalogClassNames` when you need a stable, explicit public class name:
+
+```kotlin
+portableVersionCatalog {
+    tomlFiles.setFrom(
+        "catalog/team-a/libs-main.toml",
+        "catalog/team-b/libs_main.toml"
+    )
+
+    catalogClassNames.put(
+        "catalog/team-a/libs-main.toml",
+        "TeamAVersions"
+    )
+    catalogClassNames.put(
+        "catalog/team-b/libs_main.toml",
+        "TeamBVersions"
+    )
+}
+```
+
+Keys may be project-relative paths (recommended) or absolute paths and must refer
+to files present in `tomlFiles`. Values are the exact generated Kotlin class names
+and must be valid Kotlin and Java identifiers.
+
+If multiple TOML file names resolve to the same generated class name, generation
+fails instead of silently overwriting a source file. Resolve the collision by
+renaming the files or assigning unique names through `catalogClassNames`.
+
 ### Run the Task
 
 By default, the plugin is executed automatically before the `compileKotlin` task. However, you can also trigger it manually using the `generatePortableVersionCatalog` task:

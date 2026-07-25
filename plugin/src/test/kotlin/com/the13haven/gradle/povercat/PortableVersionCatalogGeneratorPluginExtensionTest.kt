@@ -59,6 +59,21 @@ class PortableVersionCatalogGeneratorPluginExtensionTest {
     }
 
     @Test
+    fun `should have empty catalog class names by default`() {
+        assertTrue(extension.catalogClassNames.get().isEmpty())
+    }
+
+    @Test
+    fun `should allow setting catalog class name`() {
+        extension.catalogClassNames.put("custom.versions.toml", "CustomVersions")
+
+        assertEquals(
+            "CustomVersions",
+            extension.catalogClassNames.get()["custom.versions.toml"]
+        )
+    }
+
+    @Test
     fun `should have default outputDir value`() {
         val expectedDir = project.layout.buildDirectory.dir("build/generated/sources").get().asFile
         assertEquals(expectedDir, extension.outputDir.get().asFile)

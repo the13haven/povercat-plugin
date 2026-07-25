@@ -154,6 +154,80 @@ class PortableVersionCatalogGeneratorPluginTest {
     }
 
     @Test
+    fun `fail on class name collision and allow resolving it with explicit names`() {
+        val firstCatalog = projectDir.resolve("catalog/team-a/libs-main.toml")
+        val secondCatalog = projectDir.resolve("catalog/team-b/libs_main.toml")
+        firstCatalog.parentFile.mkdirs()
+        secondCatalog.parentFile.mkdirs()
+        writeMinimalTomlFile(firstCatalog)
+        writeMinimalTomlFile(secondCatalog)
+        writeBuildFile(tomlFiles = listOf(firstCatalog, secondCatalog))
+
+        val failedResult = runner("generatePortableVersionCatalog").buildAndFail()
+
+        assertTrue(failedResult.output.contains("Multiple version catalogs"))
+        assertTrue(failedResult.output.contains(firstCatalog.absolutePath))
+        assertTrue(failedResult.output.contains(secondCatalog.absolutePath))
+        assertTrue(failedResult.output.contains("catalogClassNames"))
+
+        writeBuildFile(
+            tomlFiles = listOf(firstCatalog, secondCatalog),
+            catalogClassNames = mapOf(
+                "catalog/team-a/libs-main.toml" to "TeamAVersions",
+                "catalog/team-b/libs_main.toml" to "TeamBVersions"
+            )
+        )
+
+        val successfulResult = runner(
+            "compileKotlin",
+            "--configuration-cache",
+            "--configuration-cache-problems=fail"
+        ).build()
+        assertEquals(
+            TaskOutcome.SUCCESS,
+            successfulResult.task(":generatePortableVersionCatalog")?.outcome
+        )
+
+        val generatedPackage = projectDir.resolve("build/generated/sources/com/example/catalog")
+        assertTrue(
+            generatedPackage.resolve("TeamAVersionsCatalog.kt")
+                .readText()
+                .contains("class TeamAVersions private constructor()")
+        )
+        assertTrue(
+            generatedPackage.resolve("TeamBVersionsCatalog.kt")
+                .readText()
+                .contains("class TeamBVersions private constructor()")
+        )
+        assertTrue(
+            projectDir.resolve(
+                "build/classes/kotlin/main/com/example/catalog/TeamAVersions.class"
+            ).exists()
+        )
+        assertTrue(
+            projectDir.resolve(
+                "build/classes/kotlin/main/com/example/catalog/TeamBVersions.class"
+            ).exists()
+        )
+
+        writeBuildFile(
+            tomlFiles = listOf(firstCatalog, secondCatalog),
+            catalogClassNames = mapOf(
+                "catalog/team-a/libs-main.toml" to "RenamedTeamAVersions",
+                "catalog/team-b/libs_main.toml" to "TeamBVersions"
+            )
+        )
+        runner(
+            "generatePortableVersionCatalog",
+            "--configuration-cache",
+            "--configuration-cache-problems=fail"
+        ).build()
+
+        assertFalse(generatedPackage.resolve("TeamAVersionsCatalog.kt").exists())
+        assertTrue(generatedPackage.resolve("RenamedTeamAVersionsCatalog.kt").exists())
+    }
+
+    @Test
     fun `remove stale generated sources when catalogs change`() {
         val firstCatalog = projectDir.resolve("first.toml")
         val secondCatalog = projectDir.resolve("second.toml")
@@ -215,7 +289,8 @@ class PortableVersionCatalogGeneratorPluginTest {
 
     private fun writeBuildFile(
         projectVersion: String = "1.2.3",
-        tomlFiles: List<File>? = listOf(projectDir.resolve(versionsFileName))
+        tomlFiles: List<File>? = listOf(projectDir.resolve(versionsFileName)),
+        catalogClassNames: Map<String, String> = emptyMap()
     ) {
         val tomlFilesConfiguration = when {
             tomlFiles == null -> ""
@@ -225,6 +300,10 @@ class PortableVersionCatalogGeneratorPluginTest {
                 postfix = "))"
             ) { "\"${it.absolutePath}\"" }
         }
+        val catalogClassNamesConfiguration = catalogClassNames.entries
+            .joinToString("\n") { (catalogPath, className) ->
+                """catalogClassNames.put("$catalogPath", "$className")"""
+            }
         val buildFile = projectDir.resolve("build.gradle.kts")
         buildFile.writeText(
             """
@@ -241,6 +320,7 @@ class PortableVersionCatalogGeneratorPluginTest {
             portableVersionCatalog {
                 catalogPackage.set("com.example.catalog")
                 $tomlFilesConfiguration
+                $catalogClassNamesConfiguration
                 outputDir.set(file("build/generated/sources"))
             }
 

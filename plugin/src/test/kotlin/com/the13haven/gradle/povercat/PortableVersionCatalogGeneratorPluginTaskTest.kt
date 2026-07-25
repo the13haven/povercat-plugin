@@ -54,6 +54,8 @@ class PortableVersionCatalogGeneratorPluginTaskTest {
 
         task.get().catalogPackage.set("com.example.catalog")
         task.get().projectVersion.set("1.0.0")
+        task.get().catalogClassNames.convention(emptyMap())
+        task.get().projectDirectory.set(tempDir)
         task.get().outputDir.set(tempDir)
     }
 
@@ -68,6 +70,13 @@ class PortableVersionCatalogGeneratorPluginTaskTest {
             tempDir,
             PortableVersionCatalogGeneratorPluginTask.GENERATED_FILES_MANIFEST
         ).writeText("com/example/catalog/StaleCatalog.kt\n")
+
+        assertTrue(task.get().hasConfiguredCatalogsOrPreviousOutputs())
+    }
+
+    @Test
+    fun `should require work when class name is configured without catalog file`() {
+        task.get().catalogClassNames.put("missing.toml", "MissingVersions")
 
         assertTrue(task.get().hasConfiguredCatalogsOrPreviousOutputs())
     }
@@ -116,6 +125,73 @@ class PortableVersionCatalogGeneratorPluginTaskTest {
                 PortableVersionCatalogGeneratorPluginTask.GENERATED_FILES_MANIFEST
             ).readText()
         )
+    }
+
+    @Test
+    fun `should use explicitly configured catalog class name`() {
+        val catalogFile = File(tempDir, "custom.toml").apply { writeText("[versions]") }
+        task.get().tomlFiles.setFrom(catalogFile)
+        task.get().catalogClassNames.put("custom.toml", "CompanyVersions")
+
+        mockkObject(PortableVersionCatalogClassGenerator)
+        every {
+            PortableVersionCatalogClassGenerator.generateClass(
+                catalogFile,
+                "com.example.catalog",
+                "CompanyVersions",
+                "1.0.0"
+            )
+        } returns "class CompanyVersions {}"
+
+        task.get().executeTask()
+
+        val generatedFile = File(tempDir, "com/example/catalog/CompanyVersionsCatalog.kt")
+        assertTrue(generatedFile.exists())
+        assertTrue(generatedFile.readText().contains("class CompanyVersions {}"))
+    }
+
+    @Test
+    fun `should fail with actionable message when generated class names collide`() {
+        val firstCatalog = File(tempDir, "libs-main.toml").apply { writeText("[versions]") }
+        val secondCatalog = File(tempDir, "libs_main.toml").apply { writeText("[versions]") }
+        task.get().tomlFiles.setFrom(firstCatalog, secondCatalog)
+
+        val exception = assertThrows<GradleException> {
+            task.get().executeTask()
+        }
+
+        assertTrue(exception.message!!.contains("Multiple version catalogs"))
+        assertTrue(exception.message!!.contains(firstCatalog.absolutePath))
+        assertTrue(exception.message!!.contains(secondCatalog.absolutePath))
+        assertTrue(exception.message!!.contains("catalogClassNames"))
+    }
+
+    @Test
+    fun `should reject invalid explicit catalog class name`() {
+        val catalogFile = File(tempDir, "custom.toml").apply { writeText("[versions]") }
+        task.get().tomlFiles.setFrom(catalogFile)
+        task.get().catalogClassNames.put("custom.toml", "invalid-name")
+
+        val exception = assertThrows<GradleException> {
+            task.get().executeTask()
+        }
+
+        assertTrue(exception.message!!.contains("Invalid generated catalog class name"))
+        assertTrue(exception.message!!.contains("invalid-name"))
+    }
+
+    @Test
+    fun `should reject class name configured for file outside toml files`() {
+        val catalogFile = File(tempDir, "custom.toml").apply { writeText("[versions]") }
+        task.get().tomlFiles.setFrom(catalogFile)
+        task.get().catalogClassNames.put("another.toml", "AnotherVersions")
+
+        val exception = assertThrows<GradleException> {
+            task.get().executeTask()
+        }
+
+        assertTrue(exception.message!!.contains("not in tomlFiles"))
+        assertTrue(exception.message!!.contains("another.toml"))
     }
 
     @Test
