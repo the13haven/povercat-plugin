@@ -54,7 +54,7 @@ class PortableVersionCatalogGeneratorPluginTest {
             .withProjectDir(projectDir)
             .withPluginClasspath()
             .withArguments(
-                "generatePortableVersionCatalog",
+                "compileKotlin",
                 "--configuration-cache",
                 "--configuration-cache-problems=fail"
             )
@@ -82,6 +82,9 @@ class PortableVersionCatalogGeneratorPluginTest {
         val generatedCatalog = generatedDir.resolve("com/example/catalog/VersionsCatalog.kt")
         assertTrue(generatedCatalog.exists())
         assertTrue(generatedCatalog.readText().contains("@version v1.2.3"))
+        assertTrue(
+            projectDir.resolve("build/classes/kotlin/main/com/example/catalog/Versions.class").exists()
+        )
 
         // 6. Change a declared task input and verify the catalog is regenerated
         writeBuildFile(projectVersion = "2.0.0")
@@ -94,14 +97,39 @@ class PortableVersionCatalogGeneratorPluginTest {
         assertTrue(generatedCatalog.readText().contains("@version v2.0.0"))
     }
 
+    @Test
+    fun `fail with clear message when producer has no supported Kotlin plugin`() {
+        projectDir.resolve("build.gradle.kts").writeText(
+            """
+            plugins {
+                id("com.the13haven.povercat")
+            }
+            """.trimIndent()
+        )
+
+        val result = GradleRunner.create()
+            .withProjectDir(projectDir)
+            .withPluginClasspath()
+            .withArguments("tasks")
+            .buildAndFail()
+
+        assertTrue(
+            result.output.contains(PortableVersionCatalogGeneratorPlugin.KOTLIN_PLUGIN_REQUIRED_MESSAGE)
+        )
+    }
+
     private fun writeBuildFile(projectVersion: String = "1.2.3") {
         val buildFile = projectDir.resolve("build.gradle.kts")
         buildFile.writeText(
             """
             plugins {
-                `kotlin-dsl`
                 id("jacoco-testkit-coverage")
                 id("com.the13haven.povercat")
+                `kotlin-dsl`
+            }
+
+            repositories {
+                mavenCentral()
             }
 
             portableVersionCatalog {

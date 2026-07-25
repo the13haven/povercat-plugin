@@ -15,11 +15,12 @@
 
 package com.the13haven.gradle.povercat
 
-import org.gradle.api.Plugin
-import org.gradle.api.Project
-import org.gradle.kotlin.dsl.get
 import com.the13haven.gradle.povercat.PortableVersionCatalogGeneratorPluginExtension.Companion.portableVersionCatalog
 import com.the13haven.gradle.povercat.PortableVersionCatalogGeneratorPluginTask.Companion.generatePortableVersionCatalogTask
+import org.gradle.api.GradleException
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.api.tasks.SourceSetContainer
 
 
 /**
@@ -37,16 +38,47 @@ abstract class PortableVersionCatalogGeneratorPlugin : Plugin<Project> {
         // register task
         val task = project.generatePortableVersionCatalogTask(extension)
 
-        // arrange tasks in a sequential chain
-        project.tasks
-            .named("compileKotlin") {
+        var kotlinIntegrationConfigured = false
+
+        fun configureKotlinIntegration() {
+            if (kotlinIntegrationConfigured) {
+                return
+            }
+
+            kotlinIntegrationConfigured = true
+
+            project.tasks.named("compileKotlin") {
                 dependsOn(task)
             }
 
-        project.extensions
-            .getByType(org.gradle.api.tasks.SourceSetContainer::class.java)["main"]
-            .java {
-                srcDir(extension.outputDir)
+            project.extensions
+                .getByType(SourceSetContainer::class.java)
+                .named("main") {
+                    java.srcDir(task.flatMap { it.outputDir })
+                }
+        }
+
+        SUPPORTED_KOTLIN_PLUGIN_IDS.forEach { pluginId ->
+            project.pluginManager.withPlugin(pluginId) {
+                configureKotlinIntegration()
             }
+        }
+
+        project.afterEvaluate {
+            if (!kotlinIntegrationConfigured) {
+                throw GradleException(KOTLIN_PLUGIN_REQUIRED_MESSAGE)
+            }
+        }
+    }
+
+    companion object {
+        private val SUPPORTED_KOTLIN_PLUGIN_IDS = listOf(
+            "org.gradle.kotlin.kotlin-dsl",
+            "org.jetbrains.kotlin.jvm"
+        )
+
+        internal const val KOTLIN_PLUGIN_REQUIRED_MESSAGE =
+            "PoVerCat requires the Kotlin DSL ('kotlin-dsl') or Kotlin JVM " +
+                    "('org.jetbrains.kotlin.jvm') plugin in the catalog producer project."
     }
 }
