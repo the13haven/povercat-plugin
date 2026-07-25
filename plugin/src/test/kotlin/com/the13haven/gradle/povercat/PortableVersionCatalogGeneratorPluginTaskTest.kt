@@ -51,6 +51,7 @@ class PortableVersionCatalogGeneratorPluginTaskTest {
         task = project.tasks.register("generateCatalog", PortableVersionCatalogGeneratorPluginTask::class.java)
 
         task.get().catalogPackage.set("com.example.catalog")
+        task.get().projectVersion.set("1.0.0")
         task.get().outputDir.set(tempDir)
     }
 
