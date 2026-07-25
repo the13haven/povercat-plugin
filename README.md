@@ -234,6 +234,15 @@ This approach allows you to build convention plugins with preconfigured tools us
 
 We welcome contributions!
 
+Gradle uses its own dependency cache for released artifacts. Maven Local is
+disabled as a resolution repository by default so that locally published
+artifacts cannot unexpectedly shadow released dependencies or plugins. Enable it
+explicitly when testing a local publication:
+
+```shell
+./gradlew check -PuseMavenLocal=true
+```
+
 ___
 ## License
 

@@ -70,8 +70,8 @@ gradlePlugin {
 }
 
 publishing {
-    afterEvaluate {
-        publications.named<MavenPublication>("pluginMaven") {
+    publications.withType<MavenPublication>().configureEach {
+        if (name == "pluginMaven") {
             artifactId = "povercat"
         }
     }
