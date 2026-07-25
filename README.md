@@ -93,9 +93,9 @@ portableVersionCatalog {
 
 With an empty collection, the generation task is skipped when there are no outputs
 to clean up. PoVerCat tracks the files it owns in
-`build/generated/sources/.povercat-generated-files` and removes obsolete generated
-classes when a configured catalog is removed or renamed. Do not edit this manifest
-manually.
+`build/generated/sources/povercat/.povercat-generated-files` and removes obsolete
+generated classes when a configured catalog is removed or renamed. Do not edit this
+manifest manually.
 
 PoVerCat validates every configured catalog before generating source code. This is
 necessary because custom files from `tomlFiles` are not necessarily imported by
@@ -117,7 +117,9 @@ alias separator and is rejected rather than normalized.
 
 The default package for the generated classes is `org.gradle.version.catalog`. This too can be customized via plugin configuration.
 
-By default, the generated source files are placed under `build/generated/sources`. You can also override this output directory if needed.
+By default, the generated source files are placed under
+`build/generated/sources/povercat`. PoVerCat automatically registers this directory
+as a source directory, including when `outputDir` is overridden.
 
 Below is an example of how to override the default settings in `build.gradle.kts`:
 
@@ -125,7 +127,7 @@ Below is an example of how to override the default settings in `build.gradle.kts
 portableVersionCatalog {
     tomlFiles.setFrom("${projectDir.absolutePath}/catalog/libs-main.versions.toml")
     catalogPackage.set("com.example.catalog")
-    outputDir.set(file("build/generated/sources"))
+    outputDir.set(layout.buildDirectory.dir("generated/sources/custom-catalogs"))
 }
 ```
 

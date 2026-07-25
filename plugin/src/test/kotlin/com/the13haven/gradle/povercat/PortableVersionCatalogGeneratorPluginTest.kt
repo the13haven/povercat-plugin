@@ -35,11 +35,13 @@ class PortableVersionCatalogGeneratorPluginTest {
     lateinit var projectDir: File
 
     private val versionsFileName = "versions.toml"
+    private val defaultGeneratedSourcesPath = "build/generated/sources/povercat"
 
     @Test
     fun `generate catalog with reusable configuration cache`() {
         // 1. Create test build.gradle.kts
-        writeBuildFile()
+        val generatedSourcesPath = "build/generated/sources"
+        writeBuildFile(outputDir = generatedSourcesPath)
 
         // 2. Create file versions.toml
         copyVersionCatalogFixture()
@@ -78,7 +80,7 @@ class PortableVersionCatalogGeneratorPluginTest {
         assertTrue(secondRun.output.contains("Configuration cache entry reused."))
 
         // 5. Check files
-        val generatedDir = projectDir.resolve("build/generated/sources")
+        val generatedDir = projectDir.resolve(generatedSourcesPath)
         assertTrue(generatedDir.exists())
         val generatedCatalog = generatedDir.resolve("com/example/catalog/VersionsCatalog.kt")
         assertTrue(generatedCatalog.exists())
@@ -86,9 +88,13 @@ class PortableVersionCatalogGeneratorPluginTest {
         assertTrue(
             projectDir.resolve("build/classes/kotlin/main/com/example/catalog/Versions.class").exists()
         )
+        assertFalse(projectDir.resolve("build/build/generated/sources").exists())
 
         // 6. Change a declared task input and verify the catalog is regenerated
-        writeBuildFile(projectVersion = "2.0.0")
+        writeBuildFile(
+            projectVersion = "2.0.0",
+            outputDir = generatedSourcesPath
+        )
 
         val thirdRun = runner.build()
         assertEquals(
@@ -96,6 +102,30 @@ class PortableVersionCatalogGeneratorPluginTest {
             thirdRun.task(":generatePortableVersionCatalog")?.outcome
         )
         assertTrue(generatedCatalog.readText().contains("@version v2.0.0"))
+    }
+
+    @Test
+    fun `compile catalog from custom output directory without source set configuration`() {
+        val customOutputPath = "custom/generated/povercat"
+        writeBuildFile(outputDir = customOutputPath)
+        copyVersionCatalogFixture()
+
+        val result = runner("compileKotlin").build()
+
+        assertEquals(
+            TaskOutcome.SUCCESS,
+            result.task(":generatePortableVersionCatalog")?.outcome
+        )
+        assertTrue(
+            projectDir.resolve(
+                "$customOutputPath/com/example/catalog/VersionsCatalog.kt"
+            ).exists()
+        )
+        assertTrue(
+            projectDir.resolve(
+                "build/classes/kotlin/main/com/example/catalog/Versions.class"
+            ).exists()
+        )
     }
 
     @Test
@@ -107,7 +137,7 @@ class PortableVersionCatalogGeneratorPluginTest {
         assertEquals(TaskOutcome.SUCCESS, producerResult.task(":jar")?.outcome)
 
         val generatedCatalog = projectDir.resolve(
-            "build/generated/sources/com/example/catalog/VersionsCatalog.kt"
+            "$defaultGeneratedSourcesPath/com/example/catalog/VersionsCatalog.kt"
         ).readText()
         assertTrue(
             generatedCatalog.contains(
@@ -176,7 +206,7 @@ class PortableVersionCatalogGeneratorPluginTest {
             TaskOutcome.SKIPPED,
             result.task(":generatePortableVersionCatalog")?.outcome
         )
-        assertFalse(projectDir.resolve("build/generated/sources").exists())
+        assertFalse(projectDir.resolve(defaultGeneratedSourcesPath).exists())
     }
 
     @Test
@@ -271,7 +301,9 @@ class PortableVersionCatalogGeneratorPluginTest {
             successfulResult.task(":generatePortableVersionCatalog")?.outcome
         )
 
-        val generatedPackage = projectDir.resolve("build/generated/sources/com/example/catalog")
+        val generatedPackage = projectDir.resolve(
+            "$defaultGeneratedSourcesPath/com/example/catalog"
+        )
         assertTrue(
             generatedPackage.resolve("TeamAVersionsCatalog.kt")
                 .readText()
@@ -318,7 +350,7 @@ class PortableVersionCatalogGeneratorPluginTest {
         writeMinimalTomlFile(secondCatalog)
         writeBuildFile(tomlFiles = listOf(firstCatalog, secondCatalog))
 
-        val generatedDir = projectDir.resolve("build/generated/sources")
+        val generatedDir = projectDir.resolve(defaultGeneratedSourcesPath)
         val firstSource = generatedDir.resolve("com/example/catalog/FirstCatalog.kt")
         val secondSource = generatedDir.resolve("com/example/catalog/SecondCatalog.kt")
         val manifest = generatedDir.resolve(
@@ -373,7 +405,8 @@ class PortableVersionCatalogGeneratorPluginTest {
     private fun writeBuildFile(
         projectVersion: String = "1.2.3",
         tomlFiles: List<File>? = listOf(projectDir.resolve(versionsFileName)),
-        catalogClassNames: Map<String, String> = emptyMap()
+        catalogClassNames: Map<String, String> = emptyMap(),
+        outputDir: String? = null
     ) {
         val tomlFilesConfiguration = when {
             tomlFiles == null -> ""
@@ -387,6 +420,9 @@ class PortableVersionCatalogGeneratorPluginTest {
             .joinToString("\n") { (catalogPath, className) ->
                 """catalogClassNames.put("$catalogPath", "$className")"""
             }
+        val outputDirConfiguration = outputDir?.let {
+            """outputDir.set(file("$it"))"""
+        }.orEmpty()
         val buildFile = projectDir.resolve("build.gradle.kts")
         buildFile.writeText(
             """
@@ -404,7 +440,7 @@ class PortableVersionCatalogGeneratorPluginTest {
                 catalogPackage.set("com.example.catalog")
                 $tomlFilesConfiguration
                 $catalogClassNamesConfiguration
-                outputDir.set(file("build/generated/sources"))
+                $outputDirConfiguration
             }
 
             version = "$projectVersion"
