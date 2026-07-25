@@ -45,16 +45,7 @@ open class PortableVersionCatalogGeneratorPluginExtension(project: Project) {
 
     val outputDir: DirectoryProperty = project.objects
         .directoryProperty()
-        .convention(
-            project.objects
-                .directoryProperty()
-                .fileValue(
-                    project.layout
-                        .buildDirectory.dir("build/generated/sources")
-                        .get()
-                        .asFile
-                )
-        )
+        .convention(project.layout.buildDirectory.dir("generated/sources/povercat"))
 
     companion object {
         fun Project.portableVersionCatalog(): PortableVersionCatalogGeneratorPluginExtension =
