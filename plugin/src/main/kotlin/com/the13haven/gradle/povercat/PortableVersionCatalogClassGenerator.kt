@@ -358,6 +358,8 @@ class PortableVersionCatalogClassGenerator {
         }
 
         private fun TomlParseResult.toMap(key: String): Map<String, Any> {
+            // Catalog entry order has no semantic meaning, so generation deliberately uses the
+            // parser-provided iteration order instead of imposing an unrelated canonical sort.
             return getTable(key)?.toMap() ?: emptyMap()
         }
     }
