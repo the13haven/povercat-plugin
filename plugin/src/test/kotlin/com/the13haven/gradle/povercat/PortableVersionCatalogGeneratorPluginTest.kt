@@ -42,7 +42,7 @@ class PortableVersionCatalogGeneratorPluginTest {
         writeBuildFile()
 
         // 2. Create file versions.toml
-        writeTomlFile()
+        copyVersionCatalogFixture()
 
         val srcMainKotlin = projectDir.resolve("src/main/kotlin")
         val srcMainJava = projectDir.resolve("src/main/java")
@@ -101,7 +101,7 @@ class PortableVersionCatalogGeneratorPluginTest {
     @Test
     fun `generated catalog exposes public Gradle types and preserves rich versions`() {
         writeBuildFile()
-        writeTomlFile()
+        copyVersionCatalogFixture()
 
         val producerResult = runner("jar").build()
         assertEquals(TaskOutcome.SUCCESS, producerResult.task(":jar")?.outcome)
@@ -395,42 +395,17 @@ class PortableVersionCatalogGeneratorPluginTest {
             .withPluginClasspath()
             .withArguments(*arguments)
 
-    private fun writeTomlFile() {
+    private fun copyVersionCatalogFixture() {
         val tomlFile = projectDir.resolve(versionsFileName)
-        tomlFile.writeText(
-            """
-            [versions]
+        val catalogResource = requireNotNull(
+            javaClass.getResourceAsStream("/libs.versions.toml")
+        ) {
+            "Test version catalog resource '/libs.versions.toml' was not found"
+        }
 
-            version-simple = "1.2.3"
-            version-as-object = { prefer = "1.0.0", require = "1.0.1", strictly = "1.1.1", reject = ["0.0.1", "0.0.2"] }
-            version-reject-all = { rejectAll = true }
-            version-escaped = 'required-${'$'}value-\path-"quoted"-end'
-            version-escaped-rich = { prefer = 'prefer-${'$'}value-\path-"quoted"-end', require = 'require-${'$'}value-\path-"quoted"-end', strictly = 'strict-${'$'}value-\path-"quoted"-end', reject = ['reject-${'$'}one-\path-"quoted"-end', 'reject-${'$'}two-\path-"quoted"-end'] }
-
-            [libraries]
-
-            lib-simple-with-version = "com.mycompany:mylib:1.4"
-            lib-simple-no-version.module = "com.mycompany:mylib"
-            lib-module = { module = "com.mycompany:other", version = "1.4" }
-            lib-with-version-ref = { group = "lib.test.version.ref", name = "version-ref", version.ref = "version-simple" }
-            lib-with-version-as-object = { group = "lib.test.version.as.object", name = "version-as-object", version = { prefer = "1.0.0", require = "1.0.1", strictly = "1.1.1", reject = ["0.0.1", "0.0.2"] } }
-            lib-escaped = { group = 'com.example.${'$'}group\path"quoted"-end', name = 'lib-${'$'}name\path"quoted"-end', version.ref = "version-escaped-rich" }
-
-            [bundles]
-
-            test-bundle = ["lib-module", "lib-with-version-ref"]
-            test-bundle-simple = ["lib-simple-with-version", "lib-with-version-as-object"]
-            escaped-bundle = ["lib-escaped"]
-
-            [plugins]
-
-            plugin-simple-version = { id = "com.github.ben-manes.versions", version = "0.45.0" }
-            plugin-version-ref = { id = "com.test.plugin-version-ref", version.ref = "version-simple" }
-            plugin-version-as-object = { id = "com.test.version-as-object", version = { prefer = "1.0.0", require = "1.0.1", strictly = "1.1.1", reject = ["0.0.1", "0.0.2"] } }
-            plugin-escaped = { id = 'com.example.${'$'}plugin\path"quoted"-end', version.ref = "version-escaped-rich" }
-            plugin-simple-id.id = "com.text.plugin-with-id"
-            """.trimIndent()
-        )
+        catalogResource.use { input ->
+            tomlFile.outputStream().use(input::copyTo)
+        }
     }
 
     private fun writeConsumerBuild(consumerDir: File, producerJar: File) {
