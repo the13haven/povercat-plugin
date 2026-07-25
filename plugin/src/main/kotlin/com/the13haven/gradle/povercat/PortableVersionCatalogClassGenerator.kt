@@ -37,6 +37,7 @@ class PortableVersionCatalogClassGenerator {
             try {
                 val tomlContent = file.readText()
                 val toml = Toml.parse(tomlContent)
+                VersionCatalogValidator.validate(file, toml)
 
                 val versions = toml.toMap("versions")
                 val libraries = toml.toMap("libraries")
