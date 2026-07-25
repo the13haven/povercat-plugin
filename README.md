@@ -164,6 +164,34 @@ dependencies {
 }
 ```
 
+The generated public API uses Gradle types rather than PoVerCat-specific DTOs:
+
+| Catalog section | Generated type |
+| --- | --- |
+| `versions` | `VersionConstraint` |
+| `libraries` | `MinimalExternalModuleDependency` |
+| `bundles` | `Provider<ExternalModuleDependencyBundle>` |
+| `plugins` | `PluginDependency` |
+
+This means library and bundle accessors can be passed to Gradle dependency
+configurations. Bundle accessors accept an `ObjectFactory`; Gradle uses it to
+create a typed provider with the same dependency-notation behavior as a standard
+version-catalog bundle:
+
+```kotlin
+dependencies {
+    implementation(LibsVersions.Libraries.jacocoTool)
+    implementation(LibsVersions.Bundles.testing(objects))
+}
+```
+
+PoVerCat keeps the parsed catalog definition private and converts it to the Gradle
+types above. Rich versions retain `require`, `strictly`, `prefer`, `reject`, and
+`rejectAll` data. Conversion follows Gradle's native `MutableVersionConstraint`
+semantics: when both `require` and `strictly` are present, applying `strictly`
+makes the strict value the exposed required version; the preferred and rejected
+versions remain available through the same constraint.
+
 Once the dependency is in place, Kotlin consumers can use the version values directly:
 
 ```kotlin

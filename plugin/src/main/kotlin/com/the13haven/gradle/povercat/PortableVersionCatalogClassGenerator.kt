@@ -64,6 +64,8 @@ class PortableVersionCatalogClassGenerator {
 
                     generatePluginsPart(this, plugins, parsedVersions)
 
+                    appendLine()
+                    appendGradleTypeAdapters(this)
                     appendLine("}")
                 }
             } catch (e: Exception) {
@@ -90,17 +92,10 @@ class PortableVersionCatalogClassGenerator {
 
                             appendLine()
                             appendLine("        @JvmStatic")
-                            appendLine("        val ${TomlParserUtils.toCamelCase(key)}: VersionConstraint = DefaultImmutableVersionConstraint(")
-                            appendLine("            \"${parsedVersion.preferredVersion}\",")
-                            appendLine("            \"${parsedVersion.requiredVersion}\",")
-                            appendLine("            \"${parsedVersion.strictVersion}\",")
-                            if (parsedVersion.rejectedVersions.isNotEmpty()) {
-                                appendLine("            listOf(${parsedVersion.rejectedVersions.joinToString(", ") { "\"${it}\"" }}),")
-                            } else {
-                                appendLine("            emptyList<String>(),")
-                            }
-                            appendLine("            null")
-                            appendLine("        )")
+                            appendLine(
+                                "        val ${TomlParserUtils.toCamelCase(key)}: VersionConstraint = " +
+                                        "CatalogGradleTypeFactory.version(${parsedVersion.render()})"
+                            )
                         }
                     }
 
@@ -124,29 +119,21 @@ class PortableVersionCatalogClassGenerator {
                         val parsedLibrary = TomlParserUtils.parseLibrary(value, parsedVersions)
 
                         if (parsedLibrary.isNotEmpty()) {
+                            val libraryName = TomlParserUtils.toCamelCase(key)
+
                             appendLine()
                             appendLine("        @JvmStatic")
-                            appendLine("        val ${TomlParserUtils.toCamelCase(key)}: MinimalExternalModuleDependency = DefaultMinimalDependency(")
-                            appendLine("            DefaultModuleIdentifier.newId(\"${parsedLibrary.group}\", \"${parsedLibrary.name}\"),")
-                            appendLine("            DefaultMutableVersionConstraint(")
-                            appendLine("                DefaultImmutableVersionConstraint(")
-                            appendLine("                    \"${parsedLibrary.version.preferredVersion}\",")
-                            appendLine("                    \"${parsedLibrary.version.requiredVersion}\",")
-                            appendLine("                    \"${parsedLibrary.version.strictVersion}\",")
-                            if (parsedLibrary.version.rejectedVersions.isNotEmpty()) {
-                                appendLine(
-                                    "                    listOf(${
-                                        parsedLibrary.version.rejectedVersions.joinToString(
-                                            ", "
-                                        ) { "\"${it}\"" }
-                                    }),"
-                                )
-                            } else {
-                                appendLine("                    emptyList<String>(),")
-                            }
-                            appendLine("                    null")
-                            appendLine("                )")
-                            appendLine("            )")
+                            appendLine(
+                                "        val $libraryName: MinimalExternalModuleDependency = " +
+                                        "CatalogGradleTypeFactory.library("
+                            )
+                            appendLine(
+                                "            CatalogLibrary(" +
+                                        "\"${parsedLibrary.group}\", " +
+                                        "\"${parsedLibrary.name}\", " +
+                                        "${parsedLibrary.version.render()}" +
+                                        ")"
+                            )
                             appendLine("        )")
                         }
                     }
@@ -162,33 +149,36 @@ class PortableVersionCatalogClassGenerator {
                 with(stringBuilder) {
                     appendLine("    object Bundles {")
 
-                    val parsedBundles = java.util.HashMap<String, List<String>>()
-
                     bundles.forEach { (key, value) ->
                         val bundleLibraries = TomlParserUtils.parseBundle(value)
 
                         if (bundleLibraries.isNotEmpty()) {
                             val bundleName = TomlParserUtils.toCamelCase(key)
-                            parsedBundles.put(bundleName, bundleLibraries)
 
                             appendLine()
                             appendLine("        @JvmStatic")
-                            appendLine("        val $bundleName: ExternalModuleDependencyBundle = DefaultExternalModuleDependencyBundle()")
+                            appendLine(
+                                "        fun $bundleName(objectFactory: ObjectFactory): " +
+                                        "Provider<ExternalModuleDependencyBundle> ="
+                            )
+                            appendLine(
+                                "            objectFactory.property(" +
+                                        "ExternalModuleDependencyBundle::class.java" +
+                                        ").apply {"
+                            )
+                            appendLine("                set(")
+                            appendLine("                    CatalogGradleTypeFactory.bundle(")
+                            appendLine("                        listOf(")
+                            appendLine(
+                                bundleLibraries.joinToString(",\n") {
+                                    "                            Libraries.$it"
+                                }
+                            )
+                            appendLine("                        )")
+                            appendLine("                    )")
+                            appendLine("                )")
+                            appendLine("            }")
                         }
-                    }
-
-                    if (parsedBundles.isNotEmpty()) {
-                        appendLine()
-                        appendLine("        init {")
-
-                        appendLine(
-                            parsedBundles.map { (key, value) ->
-                                value.joinToString("\n") { "            $key.add(Libraries.$it)" }
-                            }
-                                .joinToString("\n\n")
-                        )
-
-                        appendLine("        }")
                     }
 
                     appendLine("    }")
@@ -212,22 +202,12 @@ class PortableVersionCatalogClassGenerator {
                         if (plugin.isNotEmpty()) {
                             appendLine()
                             appendLine("        @JvmStatic")
-                            appendLine("        val ${TomlParserUtils.toCamelCase(key)}: PluginDependency = DefaultPluginDependency(")
-                            appendLine("            \"${plugin.id}\",")
-                            appendLine("            DefaultMutableVersionConstraint(")
-                            appendLine("                DefaultImmutableVersionConstraint(")
-                            appendLine("                    \"${plugin.version.preferredVersion}\",")
-                            appendLine("                    \"${plugin.version.requiredVersion}\",")
-                            appendLine("                    \"${plugin.version.strictVersion}\",")
-                            if (plugin.version.rejectedVersions.isNotEmpty()) {
-                                appendLine("                    listOf(${plugin.version.rejectedVersions.joinToString(", ") { "\"${it}\"" }}),")
-                            } else {
-                                appendLine("                    emptyList<String>(),")
-                            }
-                            appendLine("                    null")
-                            appendLine("                )")
-                            appendLine("            )")
-                            appendLine("        )")
+                            appendLine(
+                                "        val ${TomlParserUtils.toCamelCase(key)}: PluginDependency = " +
+                                        "CatalogGradleTypeFactory.plugin(" +
+                                        "\"${plugin.id}\", ${plugin.version.render()}" +
+                                        ")"
+                            )
                         }
                     }
 
@@ -235,6 +215,88 @@ class PortableVersionCatalogClassGenerator {
                 }
             }
         }
+
+        private fun appendGradleTypeAdapters(stringBuilder: StringBuilder) {
+            with(stringBuilder) {
+                appendLine("    private data class CatalogVersion(")
+                appendLine("        val requiredVersion: String,")
+                appendLine("        val strictVersion: String,")
+                appendLine("        val preferredVersion: String,")
+                appendLine("        val rejectedVersions: List<String>")
+                appendLine("    )")
+                appendLine()
+                appendLine("    private data class CatalogLibrary(")
+                appendLine("        val group: String,")
+                appendLine("        val name: String,")
+                appendLine("        val version: CatalogVersion")
+                appendLine("    )")
+                appendLine()
+                appendLine("    private object CatalogGradleTypeFactory {")
+                appendLine("        fun version(version: CatalogVersion): VersionConstraint =")
+                appendLine("            mutableVersion(version).asImmutable()")
+                appendLine()
+                appendLine(
+                    "        fun library(library: CatalogLibrary): " +
+                            "MinimalExternalModuleDependency ="
+                )
+                appendLine("            DefaultMinimalDependency(")
+                appendLine("                DefaultModuleIdentifier.newId(library.group, library.name),")
+                appendLine("                mutableVersion(library.version)")
+                appendLine("            )")
+                appendLine()
+                appendLine(
+                    "        fun bundle(dependencies: List<MinimalExternalModuleDependency>): " +
+                            "ExternalModuleDependencyBundle ="
+                )
+                appendLine("            DefaultExternalModuleDependencyBundle().apply {")
+                appendLine("                addAll(dependencies)")
+                appendLine("            }")
+                appendLine()
+                appendLine(
+                    "        fun plugin(id: String, version: CatalogVersion): PluginDependency ="
+                )
+                appendLine("            DefaultPluginDependency(id, mutableVersion(version))")
+                appendLine()
+                appendLine(
+                    "        private fun mutableVersion(version: CatalogVersion): " +
+                            "DefaultMutableVersionConstraint ="
+                )
+                appendLine("            DefaultMutableVersionConstraint(\"\").apply {")
+                appendLine("                if (version.requiredVersion.isNotBlank()) {")
+                appendLine("                    require(version.requiredVersion)")
+                appendLine("                }")
+                appendLine("                if (version.strictVersion.isNotBlank()) {")
+                appendLine("                    strictly(version.strictVersion)")
+                appendLine("                }")
+                appendLine("                if (version.preferredVersion.isNotBlank()) {")
+                appendLine("                    prefer(version.preferredVersion)")
+                appendLine("                }")
+                appendLine("                when {")
+                appendLine("                    version.rejectedVersions == listOf(\"+\") -> rejectAll()")
+                appendLine(
+                    "                    version.rejectedVersions.isNotEmpty() -> " +
+                            "reject(*version.rejectedVersions.toTypedArray())"
+                )
+                appendLine("                }")
+                appendLine("            }")
+                appendLine("    }")
+            }
+        }
+
+        private fun TomlParserUtils.TomlVersion.render(): String =
+            "CatalogVersion(" +
+                    "requiredVersion = \"$requiredVersion\", " +
+                    "strictVersion = \"$strictVersion\", " +
+                    "preferredVersion = \"$preferredVersion\", " +
+                    "rejectedVersions = ${rejectedVersions.renderStringList()}" +
+                    ")"
+
+        private fun List<String>.renderStringList(): String =
+            if (isEmpty()) {
+                "emptyList()"
+            } else {
+                joinToString(prefix = "listOf(", postfix = ")") { "\"$it\"" }
+            }
 
         private fun appendCopyright(stringBuilder: StringBuilder) {
             with(stringBuilder) {
@@ -261,11 +323,12 @@ class PortableVersionCatalogClassGenerator {
                 appendLine("import org.gradle.api.artifacts.MinimalExternalModuleDependency")
                 appendLine("import org.gradle.api.artifacts.VersionConstraint")
                 appendLine("import org.gradle.api.internal.artifacts.DefaultModuleIdentifier")
-                appendLine("import org.gradle.api.internal.artifacts.dependencies.DefaultImmutableVersionConstraint")
                 appendLine("import org.gradle.api.internal.artifacts.dependencies.DefaultMinimalDependency")
                 appendLine("import org.gradle.api.internal.artifacts.dependencies.DefaultMutableVersionConstraint")
                 appendLine("import org.gradle.api.internal.artifacts.dependencies.DefaultPluginDependency")
                 appendLine("import org.gradle.api.internal.catalog.DefaultExternalModuleDependencyBundle")
+                appendLine("import org.gradle.api.model.ObjectFactory")
+                appendLine("import org.gradle.api.provider.Provider")
                 appendLine("import org.gradle.plugin.use.PluginDependency")
             }
         }
