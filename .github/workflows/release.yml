@@ -4,9 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: write
   contents: write
-  packages: write
 
 jobs:
   build:
@@ -15,11 +13,18 @@ jobs:
 
     steps:
       - name: Set up SSH Key
+        env:
+          ACTIONS_WRITE_KEY: ${{ secrets.ACTIONS_WRITE_KEY }}
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.ACTIONS_WRITE_KEY }}" > ~/.ssh/deploy_key_rsa
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$ACTIONS_WRITE_KEY" > ~/.ssh/deploy_key_rsa
           chmod 600 ~/.ssh/deploy_key_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          # Official GitHub Ed25519 host key:
+          # https://docs.github.com/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
+          cat > ~/.ssh/known_hosts <<'EOF'
+          github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+          EOF
+          chmod 644 ~/.ssh/known_hosts
 
       - name: Checkout project sources
         uses: actions/checkout@v7
