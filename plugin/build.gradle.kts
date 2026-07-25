@@ -36,6 +36,8 @@ dependencies {
 }
 
 kotlin {
+    // Java 21 is the intentional minimum runtime for PoVerCat. Supporting older JVMs is
+    // out of scope unless explicit community demand justifies widening the compatibility matrix.
     compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
 
     jvmToolchain {
