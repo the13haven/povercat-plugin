@@ -95,6 +95,38 @@ class PortableVersionCatalogGeneratorPluginTaskTest {
     }
 
     @Test
+    fun `should throw exception when catalog path is not a regular file`() {
+        val catalogDirectory = File(tempDir, "catalog.toml").apply {
+            mkdirs()
+        }
+
+        task.get().tomlFiles.setFrom(catalogDirectory)
+
+        val exception = assertThrows<GradleException> {
+            task.get().executeTask()
+        }
+
+        assertTrue(exception.message!!.contains("Version catalog path is not a regular file"))
+        assertTrue(exception.message!!.contains(catalogDirectory.absolutePath))
+    }
+
+    @Test
+    fun `should throw exception when catalog file does not have toml extension`() {
+        val unsupportedFile = File(tempDir, "versions.tmol").apply {
+            writeText("[versions]")
+        }
+
+        task.get().tomlFiles.setFrom(unsupportedFile)
+
+        val exception = assertThrows<GradleException> {
+            task.get().executeTask()
+        }
+
+        assertTrue(exception.message!!.contains(unsupportedFile.absolutePath))
+        assertTrue(exception.message!!.contains("Expected '.toml'."))
+    }
+
+    @Test
     fun `should generate Kotlin class file for each TOML file`() {
         val validTomlFile = File(tempDir, "valid.toml").apply { writeText("[versions]") }
 
@@ -151,6 +183,28 @@ class PortableVersionCatalogGeneratorPluginTaskTest {
     }
 
     @Test
+    fun `should reject invalid catalog package`() {
+        val catalogFile = File(tempDir, "custom.toml").apply { writeText("[versions]") }
+        task.get().tomlFiles.setFrom(catalogFile)
+
+        listOf(
+            "",
+            "com..example",
+            "com.example.my-catalog",
+            "com.class",
+            "com._"
+        ).forEach { invalidPackage ->
+            task.get().catalogPackage.set(invalidPackage)
+
+            val exception = assertThrows<GradleException> {
+                task.get().executeTask()
+            }
+
+            assertTrue(exception.message!!.contains("Invalid catalogPackage '$invalidPackage'"))
+        }
+    }
+
+    @Test
     fun `should fail with actionable message when generated class names collide`() {
         val firstCatalog = File(tempDir, "libs-main.toml").apply { writeText("[versions]") }
         val secondCatalog = File(tempDir, "libs_main.toml").apply { writeText("[versions]") }
@@ -178,6 +232,20 @@ class PortableVersionCatalogGeneratorPluginTaskTest {
 
         assertTrue(exception.message!!.contains("Invalid generated catalog class name"))
         assertTrue(exception.message!!.contains("invalid-name"))
+    }
+
+    @Test
+    fun `should reject underscore-only explicit catalog class name`() {
+        val catalogFile = File(tempDir, "custom.toml").apply { writeText("[versions]") }
+        task.get().tomlFiles.setFrom(catalogFile)
+        task.get().catalogClassNames.put("custom.toml", "__")
+
+        val exception = assertThrows<GradleException> {
+            task.get().executeTask()
+        }
+
+        assertTrue(exception.message!!.contains("Invalid generated catalog class name"))
+        assertTrue(exception.message!!.contains("__"))
     }
 
     @Test

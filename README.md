@@ -49,12 +49,18 @@ The catalog producer must:
 - apply either the Gradle `kotlin-dsl` plugin or `org.jetbrains.kotlin.jvm`;
 - provide every configured TOML file at generation time.
 
+PoVerCat supports the latest stable Gradle version used by the current project
+release. Older Gradle versions are not supported by default. If compatibility with
+an older version is required, open a support request in the project's issue tracker.
+
 The Kotlin plugin and PoVerCat may be declared in either order. PoVerCat waits for a
 supported Kotlin plugin before configuring source sets and compilation tasks.
 
 Consumer requirements are determined by the JVM target used when the producer
 compiles and publishes its artifact. A consumer does not need PoVerCat or a Kotlin
-plugin merely to use the compiled catalog classes.
+plugin merely to use the compiled catalog classes, but those classes expose Gradle
+interfaces and therefore must be used from code whose compile/runtime classpath
+already contains the Gradle API, such as convention-plugin or other build-logic code.
 
 ## Quick start
 
@@ -143,6 +149,12 @@ as invalid TOML, malformed library or rich-version declarations, unknown
 `version.ref` values, and unknown library aliases in bundles. Versionless libraries
 and plugins remain supported.
 
+PoVerCat intentionally does not generate accessors for empty bundles or
+semantically empty rich-version declarations. Although Gradle can accept some such
+entries, they contain no dependency or version data that portable build-logic code
+can consume. Remove the entry or define at least one bundled library or effective
+version constraint.
+
 ### Alias and class-name rules
 
 For aliases and references, PoVerCat follows Gradle normalization rules: `-`, `_`,
@@ -168,14 +180,165 @@ Kotlin and Java class names.
 
 The generated sources belong to the producer's main source set, so its normal JVM
 artifact contains the compiled catalog classes. Publish that artifact using the
-producer's usual mechanism, such as Maven Publish. A consumer then declares the
-published coordinates:
+producer's usual mechanism, such as Maven Publish.
+
+PoVerCat supports two primary consumption scenarios.
+
+### Scenario 1: published catalog conventions
+
+A dedicated catalog-conventions project owns the TOML catalog and publishes it in
+two forms:
+
+1. a standard Gradle version-catalog artifact for normal catalog imports;
+2. a JVM artifact containing the PoVerCat-generated portable class for compiled
+   convention-plugin code.
+
+The producer can build both artifacts from the same TOML file:
+
+```kotlin
+plugins {
+    `kotlin-dsl`
+    `version-catalog`
+    `maven-publish`
+    id("com.the13haven.povercat") version "0.1.0"
+}
+
+group = "com.haven"
+version = "1.0.0"
+
+repositories {
+    mavenCentral()
+}
+
+catalog {
+    versionCatalog {
+        from(files("gradle/libs.versions.toml"))
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("gradleVersionCatalog") {
+            artifactId = "company-version-catalog"
+            from(components["versionCatalog"])
+        }
+        create<MavenPublication>("portableVersionCatalog") {
+            artifactId = "company-version-catalog-portable"
+            from(components["java"])
+        }
+    }
+}
+```
+
+A consuming build imports the standard catalog in its `settings.gradle.kts`:
+
+```kotlin
+dependencyResolutionManagement {
+    versionCatalogs {
+        create("companyLibs") {
+            from("com.haven:company-version-catalog:1.0.0")
+        }
+    }
+}
+```
+
+When that consumer also has compiled convention plugins, its `build-logic` build
+adds the portable artifact:
 
 ```kotlin
 dependencies {
-    implementation("<group>:<artifact>:<version>")
+    implementation("com.haven:company-version-catalog-portable:1.0.0")
 }
 ```
+
+The generated class is then available when convention-plugin code needs catalog
+versions while configuring other plugins programmatically.
+
+### Scenario 2: local catalog and build logic in one repository
+
+A repository can generate the portable catalog locally without publishing it. Keep
+the catalog producer and convention plugins as separate included builds:
+
+```text
+.
+├── settings.gradle.kts
+├── version-catalog/
+│   ├── settings.gradle.kts
+│   ├── build.gradle.kts
+│   └── gradle/libs.versions.toml
+└── build-logic/
+    ├── settings.gradle.kts
+    ├── build.gradle.kts
+    └── src/main/kotlin/
+```
+
+Give the catalog producer stable dependency coordinates in
+`version-catalog/settings.gradle.kts` and `version-catalog/build.gradle.kts`:
+
+```kotlin
+// version-catalog/settings.gradle.kts
+rootProject.name = "company-version-catalog-portable"
+
+// version-catalog/build.gradle.kts
+plugins {
+    `kotlin-dsl`
+    id("com.the13haven.povercat") version "0.1.0"
+}
+
+group = "com.haven"
+version = "1.0.0"
+
+repositories {
+    mavenCentral()
+}
+```
+
+Include the producer from `build-logic/settings.gradle.kts`:
+
+```kotlin
+includeBuild("../version-catalog")
+```
+
+Depend on its matching external coordinates from `build-logic/build.gradle.kts`.
+Gradle composite-build dependency substitution replaces them with the local
+included project:
+
+```kotlin
+dependencies {
+    implementation("com.haven:company-version-catalog-portable:1.0.0")
+}
+```
+
+Finally, include the convention-plugin build from the root `settings.gradle.kts`:
+
+```kotlin
+pluginManagement {
+    includeBuild("build-logic")
+}
+```
+
+The convention-plugin source can now use catalog versions during programmatic
+configuration. For example:
+
+```kotlin
+import org.gradle.version.catalog.LibsVersions
+
+spotless {
+    java {
+        palantirJavaFormat(LibsVersions.Libraries.palantir.version!!)
+            .formatJavadoc(true)
+            .style("PALANTIR")
+
+        importOrder("java", "", "com.haven")
+        targetExclude("build/**")
+    }
+}
+```
+
+In both scenarios, the portable artifact is an implementation dependency of
+compiled build logic. Adding it to a regular project's `implementation`
+configuration does not make it available while compiling that same project's
+`build.gradle.kts`.
 
 The generated public API uses Gradle types:
 
@@ -193,8 +356,9 @@ exposed required version while preferred and rejected versions remain available.
 
 ### Kotlin usage
 
-Library values can be passed directly to dependency configurations. Bundle methods
-accept the project's `ObjectFactory` and return a typed provider:
+From compiled build logic, library values can be passed directly to dependency
+configurations. Bundle methods accept the project's `ObjectFactory` and return a
+typed provider:
 
 ```kotlin
 dependencies {
@@ -238,6 +402,13 @@ local publications:
 
 ```shell
 ./gradlew check -PuseMavenLocal=true
+```
+
+Update the Gradle Wrapper through the project script so that the distribution
+checksum and all Wrapper files are refreshed and verified together:
+
+```shell
+./scripts/update-gradle-wrapper.sh 9.6.1
 ```
 
 ## License
