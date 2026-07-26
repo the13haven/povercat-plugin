@@ -15,7 +15,6 @@
 
 package com.the13haven.gradle.povercat
 
-import org.gradle.api.logging.Logging
 import org.tomlj.Toml
 import org.tomlj.TomlParseResult
 import java.io.File
@@ -28,49 +27,42 @@ import java.time.LocalDate
  */
 internal object PortableVersionCatalogClassGenerator {
 
-    private val logger = Logging.getLogger(PortableVersionCatalogClassGenerator::class.java)
+    fun generateClass(file: File, catalogPackage: String, className: String, projectVersion: String): String {
+        val tomlContent = file.readText()
+        val toml = Toml.parse(tomlContent)
+        VersionCatalogValidator.validate(file, toml)
 
-    fun generateClass(file: File, catalogPackage: String, className: String, projectVersion: String): String =
-        try {
-            val tomlContent = file.readText()
-            val toml = Toml.parse(tomlContent)
-            VersionCatalogValidator.validate(file, toml)
+        val versions = toml.toMap("versions")
+        val libraries = toml.toMap("libraries")
+        val plugins = toml.toMap("plugins")
+        val bundles = toml.toMap("bundles")
 
-            val versions = toml.toMap("versions")
-            val libraries = toml.toMap("libraries")
-            val plugins = toml.toMap("plugins")
-            val bundles = toml.toMap("bundles")
+        val parsedVersions = mutableMapOf<String, TomlParserUtils.TomlVersion>()
 
-            val parsedVersions = mutableMapOf<String, TomlParserUtils.TomlVersion>()
+        return buildString {
+            appendCopyright(this)
+            appendLine()
+            appendLine("package $catalogPackage")
+            appendLine()
+            appendImports(this)
+            appendLine()
+            appendClassJavaDoc(this, projectVersion)
+            appendLine("class $className private constructor() {")
+            appendLine()
 
-            buildString {
-                appendCopyright(this)
-                appendLine()
-                appendLine("package $catalogPackage")
-                appendLine()
-                appendImports(this)
-                appendLine()
-                appendClassJavaDoc(this, projectVersion)
-                appendLine("class $className private constructor() {")
-                appendLine()
+            generateVersionPart(this, versions, parsedVersions)
 
-                generateVersionPart(this, versions, parsedVersions)
+            generateLibraryPart(this, libraries, parsedVersions)
 
-                generateLibraryPart(this, libraries, parsedVersions)
+            generateBundlesPart(this, bundles)
 
-                generateBundlesPart(this, bundles)
+            generatePluginsPart(this, plugins, parsedVersions)
 
-                generatePluginsPart(this, plugins, parsedVersions)
-
-                appendLine()
-                appendGradleTypeAdapters(this)
-                appendLine("}")
-            }
-        } catch (e: Exception) {
-            logger.error("An error occurred while generating portable version catalog {}", className, e)
-
-            throw e
+            appendLine()
+            appendGradleTypeAdapters(this)
+            appendLine("}")
         }
+    }
 
     private fun generateVersionPart(
         stringBuilder: StringBuilder,
@@ -214,6 +206,12 @@ internal object PortableVersionCatalogClassGenerator {
         }
     }
 
+    /**
+     * Gradle's internal implementations are intentionally confined to this private generated
+     * adapter. The generated catalog's public API exposes only standard Gradle interfaces:
+     * `VersionConstraint`, `MinimalExternalModuleDependency`, `ExternalModuleDependencyBundle`,
+     * and `PluginDependency`.
+     */
     private fun appendGradleTypeAdapters(stringBuilder: StringBuilder) {
         with(stringBuilder) {
             appendLine("    private data class CatalogVersion(")
