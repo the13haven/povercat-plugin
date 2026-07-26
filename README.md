@@ -1,6 +1,6 @@
-# Gradle POVERCAT Generator Plugin
+# Gradle PoVerCat Generator Plugin
 
-![](https://repository-images.githubusercontent.com/915818616/e467186d-18a8-4010-8d98-2ab41de9137b)
+![PoVerCat banner](https://repository-images.githubusercontent.com/915818616/e467186d-18a8-4010-8d98-2ab41de9137b)
 
 [![Release](https://img.shields.io/github/v/release/the13haven/povercat-plugin?sort=semver&display_name=release&style=flat-square&label=Release&logo=github)](https://github.com/the13haven/povercat-plugin/releases)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=flat-square&logo=github)](https://github.com/the13haven/povercat-plugin/blob/main/LICENSE)
@@ -9,51 +9,58 @@
 [![Dependabot](https://img.shields.io/github/issues-search/the13haven/povercat-plugin?query=is%3Aopen%20author%3Adependabot&style=flat-square&logo=dependabot&label=Dependabot)](https://github.com/the13haven/povercat-plugin/pulls?q=is%3Apr+author%3Aapp%2Fdependabot)
 [![Codecov](https://img.shields.io/codecov/c/gh/the13haven/povercat-plugin?token=DXGDRYHFAH&style=flat-square&logo=codecov&label=Coverage)](https://codecov.io/gh/the13haven/povercat-plugin)
 
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fthe13haven%2Fpovercat-plugin.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2Fthe13haven%2Fpovercat-plugin?ref=badge_shield&issueType=license)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fthe13haven%2Fpovercat-plugin.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2Fthe13haven%2Fpovercat-plugin?ref=badge_shield&issueType=security)
+[![FOSSA license status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fthe13haven%2Fpovercat-plugin.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2Fthe13haven%2Fpovercat-plugin?ref=badge_shield&issueType=license)
+[![FOSSA security status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fthe13haven%2Fpovercat-plugin.svg?type=shield&issueType=security)](https://app.fossa.com/projects/git%2Bgithub.com%2Fthe13haven%2Fpovercat-plugin?ref=badge_shield&issueType=security)
 
----
 ## Overview
 
-<span style="color:orange;font-weight:900;">POVERCAT</span> is an abbreviation of the words <span style="color:orange;font-weight:900;">PO</span>rtable <span style="color:orange;font-weight:900;">VER</span>sion <span style="color:orange;font-weight:900;">CAT</span>alog
+**PoVerCat** stands for **Po**rtable **Ver**sion **Cat**alog. It generates Kotlin
+classes from TOML version catalogs so that a catalog can be compiled, published as
+a regular dependency, and reused by both Kotlin and Java projects.
 
-PoVerCat is a Gradle plugin that generates Kotlin classes from TOML-based version
-catalogs in a catalog producer project. The producer publishes the compiled classes
-as a regular dependency, which can then be used from both Kotlin and Java projects.
+PoVerCat separates catalog generation from catalog consumption:
 
-The catalog producer must apply the Gradle `kotlin-dsl` plugin or the Kotlin JVM
-plugin because PoVerCat generates Kotlin source code. Consumer projects do not need
-to use Kotlin: they consume the already compiled artifact.
+1. A **catalog producer** applies PoVerCat and a supported Kotlin plugin. PoVerCat
+   validates the configured TOML files, generates Kotlin sources, adds them to the
+   main source set, and runs generation before `compileKotlin`.
+2. The producer publishes its normal JVM artifact containing the compiled catalog
+   classes.
+3. A **catalog consumer** adds that artifact as a dependency and uses the generated
+   Gradle-native types. Consumers do not apply PoVerCat and do not need a Kotlin
+   plugin.
 
-## Features
+### Features
 
-* Automatic class generation from multiple TOML files
-* Portable and reusable version catalog class
-* Generated catalog artifacts are usable from both Kotlin and Java
-* Seamless integration with Gradle projects
-* Minimal settings for default case
+- Generates a class for each configured TOML catalog.
+- Supports version, library, bundle, and plugin entries, including rich versions.
+- Exposes Gradle interfaces instead of PoVerCat-specific public DTOs.
+- Produces an API that is callable from Kotlin and Java.
+- Supports explicit class names and custom packages and output directories.
+- Validates catalog structure, aliases, references, and generated-name collisions.
+- Removes stale generated sources when catalogs are removed or renamed.
+- Supports Gradle configuration cache reuse; generation outputs are deliberately
+  excluded from the build cache because they contain the execution year.
 
-## Compatibility model
+## Requirements
 
-PoVerCat distinguishes between the project that generates the catalog and the
-projects that consume it:
+The catalog producer must:
 
-* **Catalog producer** — a Gradle project that applies `kotlin-dsl` or
-  `org.jetbrains.kotlin.jvm`. PoVerCat generates Kotlin source code, adds it to the
-  main source set, and runs generation before `compileKotlin`.
-* **Catalog consumer** — a Kotlin or Java project that declares a dependency on the
-  artifact published by the producer. Consumers use compiled classes and therefore
-  do not need to apply PoVerCat or the Kotlin plugin.
+- run Gradle on **Java 21 or newer**;
+- apply either the Gradle `kotlin-dsl` plugin or `org.jetbrains.kotlin.jvm`;
+- provide every configured TOML file at generation time.
 
-## Plugin usage
+The Kotlin plugin and PoVerCat may be declared in either order. PoVerCat waits for a
+supported Kotlin plugin before configuring source sets and compilation tasks.
 
-### Apply the plugin
+Consumer requirements are determined by the JVM target used when the producer
+compiles and publishes its artifact. A consumer does not need PoVerCat or a Kotlin
+plugin merely to use the compiled catalog classes.
 
-To share a version catalog across multiple projects, you need to apply and configure the Povercat plugin in the project that defines the catalog.
+## Quick start
 
-The plugin is published to the official Gradle Plugin Portal, so to use it, you must first ensure that the plugin portal repository is available in your project.
-
-Add the following to your `settings.gradle.kts` to enable access to the Gradle Plugin Portal:
+PoVerCat is published to the Gradle Plugin Portal. The portal is available by
+default in most builds. If your build declares plugin repositories explicitly,
+include it in `settings.gradle.kts`:
 
 ```kotlin
 pluginManagement {
@@ -63,7 +70,7 @@ pluginManagement {
 }
 ```
 
-Then, apply the plugin in your `build.gradle.kts` file:
+Apply PoVerCat in the catalog producer's `build.gradle.kts`:
 
 ```kotlin
 plugins {
@@ -72,18 +79,50 @@ plugins {
 }
 ```
 
-The Kotlin plugin and PoVerCat may be declared in either order. PoVerCat waits for a
-supported Kotlin plugin before configuring source sets and compilation tasks.
+With no additional configuration, PoVerCat reads
+`gradle/libs.versions.toml`, generates `LibsVersions` in the
+`org.gradle.version.catalog` package, writes the source under
+`build/generated/sources/povercat`, and adds that directory to the main source set.
 
-### Configure the plugin (Optional)
+Run generation directly when needed:
 
-By default, the plugin looks for `gradle/libs.versions.toml`, the standard version
-catalog location. If the default file, or any explicitly configured catalog file,
-does not exist, generation fails with an error. You can override the default or
-specify multiple sources—each of which will be transformed into a separate Kotlin
-class.
+```shell
+./gradlew generatePortableVersionCatalog
+```
 
-To intentionally disable generation, explicitly configure an empty file collection:
+Normal Kotlin compilation runs the generation task automatically.
+
+## Configuration
+
+All settings are optional:
+
+| Property | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `tomlFiles` | `ConfigurableFileCollection` | `gradle/libs.versions.toml` | Catalog files to generate from. Each TOML file produces one class. |
+| `catalogPackage` | `Property<String>` | `org.gradle.version.catalog` | Package of all generated classes. |
+| `outputDir` | `DirectoryProperty` | `build/generated/sources/povercat` | Generated-source root; PoVerCat registers it with the main source set. |
+| `catalogClassNames` | `MapProperty<String, String>` | empty | Explicit class names keyed by project-relative or absolute TOML paths. |
+
+Example:
+
+```kotlin
+portableVersionCatalog {
+    tomlFiles.setFrom(
+        "catalog/platform.versions.toml",
+        "catalog/tooling.versions.toml"
+    )
+    catalogPackage.set("com.example.catalog")
+    outputDir.set(layout.buildDirectory.dir("generated/sources/custom-catalogs"))
+    catalogClassNames.put("catalog/platform.versions.toml", "PlatformVersions")
+    catalogClassNames.put("catalog/tooling.versions.toml", "ToolingVersions")
+}
+```
+
+### Input and task behavior
+
+The default catalog is treated like any explicitly configured file: if it does not
+exist, generation fails with a clear error. To intentionally disable generation,
+configure an empty file collection:
 
 ```kotlin
 portableVersionCatalog {
@@ -91,100 +130,54 @@ portableVersionCatalog {
 }
 ```
 
-With an empty collection, the generation task is skipped when there are no outputs
-to clean up. PoVerCat tracks the files it owns in
-`build/generated/sources/povercat/.povercat-generated-files` and removes obsolete
-generated classes when a configured catalog is removed or renamed. Do not edit this
-manifest manually.
+When the collection is empty, the task is skipped if there are no previous outputs
+to clean up. PoVerCat records its outputs in
+`build/generated/sources/povercat/.povercat-generated-files` (or the configured
+`outputDir`) and uses that manifest to remove obsolete generated classes. Do not
+edit the manifest manually.
 
-PoVerCat validates every configured catalog before generating source code. This is
-necessary because custom files from `tomlFiles` are not necessarily imported by
-Gradle as settings-level version catalogs and therefore may not be validated by
-Gradle itself. Generation fails with the catalog path, entry, and source position
-when PoVerCat finds invalid TOML, malformed library or version declarations,
-unknown `version.ref` values, or unknown library aliases in a bundle. Libraries
-and plugins without a version remain supported.
+PoVerCat validates every catalog before source generation. This is important for
+custom files that Gradle does not import as settings-level version catalogs.
+Validation reports the catalog path, entry, and source position for problems such
+as invalid TOML, malformed library or rich-version declarations, unknown
+`version.ref` values, and unknown library aliases in bundles. Versionless libraries
+and plugins remain supported.
 
-Aliases follow Gradle normalization rules: `-`, `_`, and `.` are equivalent
-separators for `version.ref` and bundle references. Generated accessors remain
-flat camel-case names, so `foo-bar`, `foo_bar`, and `foo.bar` all map to
-`fooBar`; a version alias therefore always produces one property in the
-`Versions` object rather than nested accessors. To keep the generated API
-deterministic, PoVerCat rejects declarations that become duplicates after
-normalization, distinct aliases that generate the same accessor, invalid alias
-characters, and reserved Gradle, Java, or Kotlin names. `*` is not a Gradle
-alias separator and is rejected rather than normalized.
+### Alias and class-name rules
 
-The default package for the generated classes is `org.gradle.version.catalog`. This too can be customized via plugin configuration.
+For aliases and references, PoVerCat follows Gradle normalization rules: `-`, `_`,
+and `.` are equivalent separators. Generated accessors are flat camel-case names,
+so `foo-bar`, `foo_bar`, and `foo.bar` all map to `fooBar`. A version alias therefore
+produces one property in the `Versions` object rather than nested accessors. `*` is
+not a valid Gradle alias separator and is rejected rather than normalized.
 
-By default, the generated source files are placed under
-`build/generated/sources/povercat`. PoVerCat automatically registers this directory
-as a source directory, including when `outputDir` is overridden.
+PoVerCat rejects:
 
-Below is an example of how to override the default settings in `build.gradle.kts`:
+- aliases that become duplicates after Gradle normalization;
+- distinct aliases that produce the same flat accessor;
+- invalid alias characters and reserved Gradle, Java, or Kotlin names;
+- multiple TOML files that resolve to the same generated class name.
 
-```kotlin
-portableVersionCatalog {
-    tomlFiles.setFrom("${projectDir.absolutePath}/catalog/libs-main.versions.toml")
-    catalogPackage.set("com.example.catalog")
-    outputDir.set(layout.buildDirectory.dir("generated/sources/custom-catalogs"))
-}
-```
+By default, a class name is derived from the TOML file name. For example,
+`libs-main.versions.toml` produces `LibsMainVersions`. Use `catalogClassNames` for a
+stable explicit public name or to resolve a collision. Map keys must refer to files
+present in `tomlFiles`; project-relative paths are recommended. Values must be valid
+Kotlin and Java class names.
 
-#### Configure generated class names
+## Publishing and consuming a generated catalog
 
-By default, each generated Kotlin class name is derived from its TOML file name.
-For example, `libs-main.versions.toml` produces `LibsMainVersions`.
-
-Use `catalogClassNames` when you need a stable, explicit public class name:
-
-```kotlin
-portableVersionCatalog {
-    tomlFiles.setFrom(
-        "catalog/team-a/libs-main.toml",
-        "catalog/team-b/libs_main.toml"
-    )
-
-    catalogClassNames.put(
-        "catalog/team-a/libs-main.toml",
-        "TeamAVersions"
-    )
-    catalogClassNames.put(
-        "catalog/team-b/libs_main.toml",
-        "TeamBVersions"
-    )
-}
-```
-
-Keys may be project-relative paths (recommended) or absolute paths and must refer
-to files present in `tomlFiles`. Values are the exact generated Kotlin class names
-and must be valid Kotlin and Java identifiers.
-
-If multiple TOML file names resolve to the same generated class name, generation
-fails instead of silently overwriting a source file. Resolve the collision by
-renaming the files or assigning unique names through `catalogClassNames`.
-
-### Run the Task
-
-By default, the plugin is executed automatically before the `compileKotlin` task. However, you can also trigger it manually using the `generatePortableVersionCatalog` task:
-
-```shell
-./gradlew generatePortableVersionCatalog
-```
-
-## Generated Version Catalog Usage
-
-The generated class (classes) can be used both within the same project or in other projects. If you want to use it in a different project, you need to add a dependency on the artifact that contains the generated class.
-
-For example, in your `build.gradle.kts`:
+The generated sources belong to the producer's main source set, so its normal JVM
+artifact contains the compiled catalog classes. Publish that artifact using the
+producer's usual mechanism, such as Maven Publish. A consumer then declares the
+published coordinates:
 
 ```kotlin
 dependencies {
-    implementation("<group.name>:<artifact-name>:<version>")
+    implementation("<group>:<artifact>:<version>")
 }
 ```
 
-The generated public API uses Gradle types rather than PoVerCat-specific DTOs:
+The generated public API uses Gradle types:
 
 | Catalog section | Generated type |
 | --- | --- |
@@ -193,10 +186,15 @@ The generated public API uses Gradle types rather than PoVerCat-specific DTOs:
 | `bundles` | `Provider<ExternalModuleDependencyBundle>` |
 | `plugins` | `PluginDependency` |
 
-This means library and bundle accessors can be passed to Gradle dependency
-configurations. Bundle accessors accept an `ObjectFactory`; Gradle uses it to
-create a typed provider with the same dependency-notation behavior as a standard
-version-catalog bundle:
+Rich versions preserve `require`, `strictly`, `prefer`, `reject`, and `rejectAll`.
+Conversion follows Gradle's `MutableVersionConstraint` semantics: when both
+`require` and `strictly` are present, applying `strictly` makes the strict value the
+exposed required version while preferred and rejected versions remain available.
+
+### Kotlin usage
+
+Library values can be passed directly to dependency configurations. Bundle methods
+accept the project's `ObjectFactory` and return a typed provider:
 
 ```kotlin
 dependencies {
@@ -205,45 +203,44 @@ dependencies {
 }
 ```
 
-PoVerCat keeps the parsed catalog definition private and converts it to the Gradle
-types above. Rich versions retain `require`, `strictly`, `prefer`, `reject`, and
-`rejectAll` data. Conversion follows Gradle's native `MutableVersionConstraint`
-semantics: when both `require` and `strictly` are present, applying `strictly`
-makes the strict value the exposed required version; the preferred and rejected
-versions remain available through the same constraint.
-
-Once the dependency is in place, Kotlin consumers can use the version values directly:
+Version values can also be read when configuring convention plugins or extensions:
 
 ```kotlin
-fun configureExtensions(extensions: ExtensionContainer, project: Project) {
+fun configureExtensions(extensions: ExtensionContainer) {
     extensions.configure<JacocoPluginExtension> {
         toolVersion = LibsVersions.Libraries.jacocoTool.version!!
     }
 }
 ```
 
-The same compiled catalog can be used from Java:
+### Java usage
+
+The same compiled catalog is accessible from Java through the generated static
+accessors:
 
 ```java
 String jacocoVersion = LibsVersions.Libraries.getJacocoTool().getVersion();
 ```
 
-This approach allows you to build convention plugins with preconfigured tools using centralized version definitions that are consistent across your project ecosystem.
-
 ## Contributing
 
-We welcome contributions!
+Contributions are welcome. Run the complete verification suite before submitting a
+change:
 
-Gradle uses its own dependency cache for released artifacts. Maven Local is
-disabled as a resolution repository by default so that locally published
-artifacts cannot unexpectedly shadow released dependencies or plugins. Enable it
-explicitly when testing a local publication:
+```shell
+./gradlew clean build
+```
+
+Gradle's dependency cache is used for released artifacts. Maven Local is disabled
+as a resolution repository by default so that locally published artifacts cannot
+silently shadow released dependencies or plugins. Enable it only while testing
+local publications:
 
 ```shell
 ./gradlew check -PuseMavenLocal=true
 ```
 
-___
 ## License
 
-This project is licensed under the Apache License 2.0. See the [LICENSE](./LICENSE) file for details.
+This project is licensed under the Apache License 2.0. See [LICENSE](./LICENSE) for
+details.
