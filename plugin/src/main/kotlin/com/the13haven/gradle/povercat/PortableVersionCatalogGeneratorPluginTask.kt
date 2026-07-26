@@ -413,7 +413,9 @@ abstract class PortableVersionCatalogGeneratorPluginTask : DefaultTask() {
             "while"
         )
 
-        fun Project.generatePortableVersionCatalogTask(extension: PortableVersionCatalogGeneratorPluginExtension): TaskProvider<PortableVersionCatalogGeneratorPluginTask> {
+        internal fun Project.generatePortableVersionCatalogTask(
+            extension: PortableVersionCatalogGeneratorPluginExtension
+        ): TaskProvider<PortableVersionCatalogGeneratorPluginTask> {
             val projectVersionProvider = provider { version.toString() }
 
             return tasks.register<PortableVersionCatalogGeneratorPluginTask>("generatePortableVersionCatalog") {
