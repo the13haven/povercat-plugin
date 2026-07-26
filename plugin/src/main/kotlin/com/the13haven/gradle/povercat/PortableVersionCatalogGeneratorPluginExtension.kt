@@ -48,7 +48,7 @@ open class PortableVersionCatalogGeneratorPluginExtension(project: Project) {
         .convention(project.layout.buildDirectory.dir("generated/sources/povercat"))
 
     companion object {
-        fun Project.portableVersionCatalog(): PortableVersionCatalogGeneratorPluginExtension =
+        internal fun Project.portableVersionCatalog(): PortableVersionCatalogGeneratorPluginExtension =
             extensions.create(
                 "portableVersionCatalog",
                 PortableVersionCatalogGeneratorPluginExtension::class.java,
