@@ -48,16 +48,17 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: the13haven/povercat-plugin
-          files: build/reports/coverage/coverage.xml
+          files: plugin/build/reports/coverage/coverage.xml
           fail_ci_if_error: true
           verbose: true
 
       - name: Upload test reports to Codecov
-        uses: codecov/test-results-action@v1
+        uses: codecov/codecov-action@v7
         if: ${{ github.ref_name == 'main' }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: the13haven/povercat-plugin
+          report_type: test_results
           flags: tests
           directory: plugin/build/test-results/test
           fail_ci_if_error: true
