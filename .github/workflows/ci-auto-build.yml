@@ -38,9 +38,14 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: wrapper
+          # Keep dependency and wrapper caching, but do not restore Gradle's local
+          # build cache: cached JaCoCo reports contain old session timestamps and
+          # Codecov rejects reports older than 12 hours as REPORT_EXPIRED.
+          gradle-home-cache-excludes: |
+            caches/build-cache-1
 
       - name: Run build with Gradle Wrapper
-        run: ./gradlew build --no-daemon
+        run: ./gradlew build --no-daemon --rerun-tasks
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v7
@@ -48,7 +53,8 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: the13haven/povercat-plugin
-          files: build/reports/coverage/coverage.xml
+          files: plugin/build/reports/coverage/coverage.xml
+          disable_search: true
           fail_ci_if_error: true
           verbose: true
 
