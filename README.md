@@ -81,7 +81,7 @@ Apply PoVerCat in the catalog producer's `build.gradle.kts`:
 ```kotlin
 plugins {
     `kotlin-dsl`
-    id("com.the13haven.povercat") version "1.0.0-RC1"
+    id("com.the13haven.povercat") version "1.0.0"
 }
 ```
 
@@ -200,7 +200,7 @@ plugins {
     `kotlin-dsl`
     `version-catalog`
     `maven-publish`
-    id("com.the13haven.povercat") version "1.0.0-RC1"
+    id("com.the13haven.povercat") version "1.0.0"
 }
 
 group = "com.haven"
@@ -282,7 +282,7 @@ rootProject.name = "company-version-catalog-portable"
 // version-catalog/build.gradle.kts
 plugins {
     `kotlin-dsl`
-    id("com.the13haven.povercat") version "1.0.0-RC1"
+    id("com.the13haven.povercat") version "1.0.0"
 }
 
 group = "com.haven"
